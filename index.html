@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="מסע תלת־ממדי בעקבות מחקר על בינה מלאכותית ובריאות הנפש. תוכנית המחקר בהובלת פרופ׳ דורית הדר־שובל; אלעד רפואה."><meta name="theme-color" content="#071317"><title>בתוך השיחה — השלישי המלאכותי</title><link rel="icon" href="data:,"><link rel="stylesheet" href="styles.css"><script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script></head>
+<body>
+<div id="world" aria-label="מרחב תלת־ממדי: אדם בשיחה עם בינה מלאכותית"></div><div class="vignette"></div>
+<header class="site-header"><a class="brand" href="#1"><span class="brand-mark">◌</span><span>אלעד רפואה<small>פסיכולוג בהתמחות קלינית · השלישי המלאכותי</small></span></a><div class="research-credit"><strong>בהובלת פרופ׳ דורית הדר־שובל</strong><span>תוכנית המחקר · אוניברסיטת תל־חי</span></div><div class="tools"><button id="tour" aria-pressed="false" title="סיור הדגמה אוטומטי · תחנה בכל 12 שניות">▷ סיור</button><button id="overview" title="מפת המסע (M)">מפת המסע</button><button id="sources" title="מקורות והערות (N)">מקורות</button><button id="fullscreen" title="מסך מלא (F)" aria-label="מסך מלא">⛶</button></div></header>
+<div id="loading"><div class="loading-orbit"></div><h1>בתוך השיחה</h1><p id="loading-status">נכנסים למרחב שבין אדם לבינה</p></div>
+<nav id="route" aria-label="חלקי המצגת"></nav>
+<div id="chapter-heading"><span id="chapter-section"></span><h1 id="chapter-title"></h1><p id="chapter-purpose"></p></div>
+<div id="explore-hint" hidden>גרירה לסיבוב · גלגלת להתקרבות · לחצו שוב על ״מבט חופשי״ לחזרה למסלול</div>
+<footer><div class="transport"><button id="previous" aria-label="התחנה הקודמת">→</button><div class="station"><bdi id="counter">01 / 18</bdi><span id="chapter-short"></span></div><button id="next" aria-label="התחנה הבאה">←</button></div><div class="scene-controls"><button id="explore" aria-pressed="false">מבט חופשי</button><button id="motion" aria-pressed="false" title="תנועה מופחתת">◉ <span>תנועה</span></button><button id="reading" title="גרסה נגישה לקריאה">קריאה</button></div><div id="progress" aria-hidden="true"><span></span></div></footer>
+<div id="caption" aria-live="polite"></div>
+<div id="mobile-notes" aria-label="תוכן התחנה"></div>
+<dialog id="drawer"><button class="close" aria-label="סגירה">×</button><div id="drawer-content"></div></dialog>
+<link rel="stylesheet" href="exhibits.css">
+<script src="source-facts.js"></script><script src="source-deck.js"></script><script src="presentation-data.js"></script><script type="module" src="app.js"></script>
+</body></html>
