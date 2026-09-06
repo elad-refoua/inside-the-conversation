@@ -59,5 +59,17 @@ export async function createHuman(therapist=false){
   if(therapist){const notebook=new THREE.Mesh(new THREE.BoxGeometry(.30,.025,.24),new THREE.MeshStandardMaterial({color:0xddd0b6,roughness:.94}));notebook.position.set(0,1.10,.42);notebook.rotation.x=.18;group.add(notebook);}
   const light=new THREE.PointLight(0x91e8f0,.12,1.2,2);light.position.set(0,1.36,.48);if(!therapist)group.add(light);
   const baseSpine=bones.Spine.quaternion.clone(),baseHead=bones.Head.quaternion.clone();
-  return {group,bones,update(t,still){if(still)return;bones.Spine.quaternion.copy(baseSpine).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.sin(t*.9)*.006));bones.Head.quaternion.copy(baseHead).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.sin(t*.33)*.018));}};
+  const animated=['LeftHand','RightHand','LeftHandThumb1','RightHandThumb1','LeftHandThumb2','RightHandThumb2'];
+  const rest=Object.fromEntries(animated.filter(k=>bones[k]).map(k=>[k,bones[k].quaternion.clone()]));
+  const xAxis=new THREE.Vector3(1,0,0),yAxis=new THREE.Vector3(0,1,0),q=new THREE.Quaternion();
+  const typingDots=[];for(let i=0;i<3;i++){const dot=new THREE.Mesh(new THREE.CircleGeometry(.005,16),new THREE.MeshBasicMaterial({color:0x225c62}));dot.position.set(-.015+i*.015,-.105,.012);phone.add(dot);typingDots.push(dot);}
+  let activity=0;
+  return {group,bones,get activity(){return activity;},update(t,still,typing=false){if(still)return;activity+=(Number(typing)-activity)*.07;
+   bones.Spine.quaternion.copy(baseSpine).multiply(q.setFromAxisAngle(xAxis,Math.sin(t*.9)*.006));
+   bones.Head.quaternion.copy(baseHead).multiply(q.setFromAxisAngle(yAxis,Math.sin(t*.33)*.018*(1-activity*.65)));
+   for(const side of ['Left','Right']){const tap=Math.pow(Math.max(0,Math.sin(t*7+(side==='Left'?0:Math.PI))),3)*activity;
+    for(const [part,angle] of [['Hand',.038],['HandThumb1',.24],['HandThumb2',.32]]){const name=side+part;if(rest[name])bones[name].quaternion.copy(rest[name]).multiply(q.setFromAxisAngle(xAxis,tap*angle));}
+   }
+   if(!therapist){phone.rotation.x=-.5+Math.sin(t*7)*.009*activity;light.intensity=.12+.08*activity;typingDots.forEach((dot,i)=>{dot.visible=activity>.1;dot.scale.setScalar(.65+.35*Math.sin(t*6-i*1.2));});}
+  }};
 }

@@ -7,7 +7,8 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js';
+import {createHuman} from './human.js?v=a2fecfe3f8';
+import {formatInlineBidi} from './bidi.js?v=a2fecfe3f8';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -91,7 +92,7 @@ export async function createWorld(container,chapters){
  const footpath=tube([[-1.7,.015,1],[.5,.015,3.1],[3,.015,2.1],[4.7,.015,-1],[3.2,.015,-4]],'#a68d61',.012);
  // Each piece of text belongs to a location in the world. The camera reveals it.
  const labelScene=new THREE.Scene(),labelSets=[];
- for(let ci=0;ci<chapters.length;ci++){const group=new THREE.Group();labelScene.add(group);const chapter=chapters[ci];const labels=[];for(const spec of chapter.labels){const el=document.createElement('div');el.className='world-label '+(spec.tone||'');el.dataset.chapter=ci;el.innerHTML=spec.html;if(spec.width)el.style.width=spec.width+'px';const object=new CSS3DObject(el);el.style.pointerEvents='none';object.position.set(...spec.pos);object.scale.setScalar(spec.scale||.004);const aim=V(...chapter.camera);object.lookAt(aim);group.add(object);labels.push({el,object,spec});}group.visible=false;labelSets.push({group,labels});}
+ for(let ci=0;ci<chapters.length;ci++){const group=new THREE.Group();labelScene.add(group);const chapter=chapters[ci];const labels=[];for(const spec of chapter.labels){const el=document.createElement('div');el.className='world-label '+(spec.tone||'');el.dir='rtl';el.dataset.chapter=ci;el.innerHTML=spec.html;formatInlineBidi(el);if(spec.width)el.style.width=spec.width+'px';const object=new CSS3DObject(el);el.style.pointerEvents='auto';el.dataset.label=labels.length;if(!el.querySelector('button')){el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','הגדלה: '+(el.querySelector('h2')?.textContent||chapter.title));}el.title='לחצו להגדלה';object.position.set(...spec.pos);object.scale.setScalar(spec.scale||.004);const aim=V(...chapter.camera);object.lookAt(aim);group.add(object);labels.push({el,object,spec});}group.visible=false;labelSets.push({group,labels});}
  // Fit each exhibition plane at its destination, then leave it anchored in
  // world space. Travelling or orbiting the camera creates real parallax.
  function layoutLabels(index){
@@ -99,13 +100,14 @@ export async function createWorld(container,chapters){
   const director=new THREE.PerspectiveCamera(43,w/h,.06,150);director.position.copy(cameraDestination(ch));director.lookAt(V(...ch.target));director.updateMatrixWorld();
   const d=5.5,unit=2*d*Math.tan(THREE.MathUtils.degToRad(43/2))/h;
   const forward=V(0,0,-1).applyQuaternion(director.quaternion),right=V(1,0,0).applyQuaternion(director.quaternion),up=V(0,1,0).applyQuaternion(director.quaternion),center=director.position.clone().addScaledVector(forward,d);
-  const top=h<780?185:224,bottom=h-123,available=bottom-top;
+  const headingBottom=document.querySelector('#chapter-heading').getBoundingClientRect().bottom;const top=Math.max(h<780?185:224,headingBottom+18),bottom=h-136,available=bottom-top;
   for(const [i,l] of labelSets[index].labels.entries()){
-   let maxWidth=w*.50,maxHeight=available,cx=w*.282,cy=(top+bottom)/2;
+   let maxWidth=w*.50,maxHeight=available,cx=w*.718,cy=(top+bottom)/2;
    const slot=l.spec.slot;
-   if(slot==='insight'){maxWidth=w*.30;maxHeight=Math.min(available,h*.37);cx=w*.814;cy=bottom-maxHeight/2;}
-   if(ch.layout==='paired'){maxWidth=w*.36;maxHeight=available;cx=w*(i===0?.227:.773);cy=(top+bottom)/2;}
-   if(ch.layout==='triptych'){maxWidth=w*.287;maxHeight=available*.58;cx=w*(.178+i*.322);cy=bottom-maxHeight/2;}
+   if(slot==='viewpoints'){maxWidth=w*.32;maxHeight=available;cx=w*.194;cy=(top+bottom)/2;}
+   if(slot==='insight'){maxWidth=w*.30;maxHeight=Math.min(available,h*.37);cx=w*.186;cy=bottom-maxHeight/2;}
+   if(ch.layout==='paired'){maxWidth=w*.36;maxHeight=available;cx=w*(i===0?.773:.227);cy=(top+bottom)/2;}
+   if(ch.layout==='triptych'){maxWidth=w*.287;maxHeight=available*.58;cx=w*(.822-i*.322);cy=bottom-maxHeight/2;}
    if(slot==='speech-left'){maxWidth=w*.30;maxHeight=h*.15;cx=w*.243;cy=top+h*.07;}
    if(slot==='speech-right'){maxWidth=w*.33;maxHeight=h*.29;cx=w*.79;cy=bottom-h*.13;}
    const naturalWidth=l.spec.width||520,naturalHeight=l.el.offsetHeight||300,ratio=Math.min(maxWidth/naturalWidth,maxHeight/naturalHeight);
@@ -113,24 +115,46 @@ export async function createWorld(container,chapters){
   }
  }
  const chartGroup=new THREE.Group();scene.add(chartGroup);
- let current=-1,transition=null,still=matchMedia('(prefers-reduced-motion: reduce)').matches,exploring=false;let currentTarget=V(0,1.2,0);let tick=0;const clock=new THREE.Clock();
+ // Finding cues are symbolic, never additional data encodings.
+ const cueGroup=new THREE.Group();scene.add(cueGroup);
+ const cueMaterial=new THREE.MeshBasicMaterial({color:'#a4e7df',transparent:true,opacity:.5,depthWrite:false});
+ const patientHalo=ring(.83,.033,cueMaterial,cueGroup,[-1.7,.15]);
+ const aiHalo=ring(.8,.042,cueMaterial.clone(),cueGroup,[.5,0]);
+ const bridge=tube([[-1.7,.055,.15],[-.2,.08,-1.2],[1.7,.08,-2],[3.3,.055,-3.1]],'#b4e6df',.017,cueGroup).o;
+ const steps=[];for(let i=0;i<4;i++){const step=ring(.10,.038,cueMaterial.clone(),cueGroup,[-1.4+i*.40,1.25+i*.24]);steps.push(step);}
+ let cueKind='';
+ function setCue(ch){cueKind=ch.sceneCue?.kind||'';cueGroup.visible=!!cueKind;patientHalo.visible=['availability','ambivalence','change','gap'].includes(cueKind);aiHalo.visible=['availability','ambivalence','change'].includes(cueKind);bridge.visible=cueKind==='bridge';steps.forEach(x=>x.visible=cueKind==='agency');patientHalo.material.color.set(cueKind==='gap'?'#eac68b':cueKind==='ambivalence'?'#e3a898':'#a4e7df');aiHalo.material.color.set('#a4e7df');}
+ let current=-1,transition=null,still=matchMedia('(prefers-reduced-motion: reduce)').matches,exploring=false,paused=false;let currentTarget=V(0,1.2,0);let tick=0,settledAt=0;const clock=new THREE.Clock();
+ const homeCamera=V(0,0,0),pointer=new THREE.Vector2(),drag=new THREE.Vector2(),sway=new THREE.Vector2();let grab=null;
+ const liveRight=V(1,0,0),liveUp=V(0,1,0),desiredSway=new THREE.Vector2();
+ const clamp=THREE.MathUtils.clamp;
+ function resetSway(){pointer.set(0,0);drag.set(0,0);sway.set(0,0);grab=null;settledAt=tick;}
+ container.addEventListener('pointerdown',e=>{if(exploring||still||paused||transition||e.button!==0||e.target.closest('button,a'))return;grab={id:e.pointerId,x:e.clientX,y:e.clientY,base:drag.clone(),moved:false};});
+ container.addEventListener('pointermove',e=>{if(exploring||still||paused||transition)return;if(grab?.id===e.pointerId){if(Math.hypot(e.clientX-grab.x,e.clientY-grab.y)>6){grab.moved=true;container.setPointerCapture(e.pointerId);}drag.set(clamp(grab.base.x+(e.clientX-grab.x)/Math.min(innerWidth*.20,240),-1,1),clamp(grab.base.y+(e.clientY-grab.y)/Math.min(innerHeight*.22,180),-1,1));}else if(e.pointerType==='mouse'){pointer.set(clamp((e.clientX/innerWidth-.5)*2,-1,1),clamp((e.clientY/innerHeight-.5)*2,-1,1));}});
+ function release(e){if(grab?.id===e.pointerId){if(grab.moved)container.dataset.suppressClickUntil=performance.now()+400;grab=null;if(container.hasPointerCapture(e.pointerId))container.releasePointerCapture(e.pointerId);}}
+ container.addEventListener('pointerup',release);container.addEventListener('pointercancel',release);
+ container.addEventListener('pointerleave',()=>{if(!grab)pointer.set(0,0);});
+ container.addEventListener('dblclick',()=>{if(!exploring){drag.set(0,0);pointer.set(0,0);}});
  function chart(ch){while(chartGroup.children.length){const o=chartGroup.children[0];chartGroup.remove(o);o.traverse(x=>{x.geometry?.dispose();if(x.material?.dispose)x.material.dispose();});}
   if(ch.visual==='population'){const f=window.SOURCE_FACTS.facts,n=f.n_w1.value,lit=f.n_users.value;const geo=new THREE.SphereGeometry(.034,6,4),m=new THREE.MeshStandardMaterial({color:'#e7d5a9',emissive:'#bea078',emissiveIntensity:.25}),off=mat('#315260',.6);const active=new THREE.InstancedMesh(geo,m,lit),inactive=new THREE.InstancedMesh(geo.clone(),off,n-lit);const dummy=new THREE.Object3D();for(let i=0;i<n;i++){const a=(i%40)/40*Math.PI*2,r=4.3+Math.floor(i/40)*.045;dummy.position.set(Math.cos(a)*r,.28+Math.floor(i/40)*.13,Math.sin(a)*r);dummy.updateMatrix();(i<lit?active:inactive).setMatrixAt(i<lit?i:i-lit,dummy.matrix);}chartGroup.add(active,inactive);}
   if(ch.visual==='needs'){const ids=['need_com_users','need_con_users','need_pred_users','need_tru_users','need_acc_users'];ids.forEach((id,i)=>{const h=window.SOURCE_FACTS.facts[id].value*.80;const c=i<3?'#7ccddb':'#d2a58e';const o=box(.24,h,.24,new THREE.MeshStandardMaterial({color:c,metalness:.3,roughness:.3,emissive:c,emissiveIntensity:.1}),[-.55+i*.48,h/2,-2.65],chartGroup);ring(.18,.04,new THREE.MeshBasicMaterial({color:c}),chartGroup,[-.55+i*.48,-2.65]);});}
   if(ch.visual==='paths'){const colors=['#8dcacf','#e2bc79','#e68e7e'];[[0,.2,2.8],[-1.8,.2,3.3],[2.8,.2,3.3]].forEach((p,i)=>{tube([[-1,.08,.9],[-.6,.12,1.8],p,[p[0],.2,p[2]+1.5]],colors[i],.018,chartGroup);});}
  }
  function cameraDestination(ch){const p=V(...ch.camera);if(innerWidth<innerHeight){const center=V(...ch.target);p.sub(center).multiplyScalar(1.7).add(center);}return p;}
- function setChapter(index,immediate=false){const ch=chapters[index];exploring=false;controls.enabled=false;const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();if(current<0||immediate||still){camera.position.copy(cameraDestination(ch));currentTarget.set(...ch.target);camera.lookAt(currentTarget);transition=null;}else{transition={start:performance.now(),duration:2400,fromPos,fromTarget,toPos:cameraDestination(ch),toTarget:V(...ch.target)};}
- current=index;therapistLight.intensity=ch.therapist?32:13;labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity=(immediate||still)?'1':'0';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});chart(ch);controls.target.copy(currentTarget);resize();
+ function setChapter(index,immediate=false){const ch=chapters[index];exploring=false;controls.enabled=false;const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(cameraDestination(ch));if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.set(...ch.target);camera.lookAt(currentTarget);transition=null;}else{transition={start:performance.now(),duration:2400,fromPos,fromTarget,toPos:homeCamera.clone(),toTarget:V(...ch.target)};}
+ current=index;therapistLight.intensity=ch.therapist?32:13;labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity=(immediate||still)?'1':'0';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
  }
- function resize(reframe=false){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<h?62:43;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);css.setSize(w,h);if(current>=0){layoutLabels(current);requestAnimationFrame(()=>layoutLabels(current));}if(reframe&&current>=0&&!exploring){camera.position.copy(cameraDestination(chapters[current]));currentTarget.set(...chapters[current].target);camera.lookAt(currentTarget);transition=null;}}
+ function resize(reframe=false){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<h?62:43;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);css.setSize(w,h);if(current>=0){layoutLabels(current);requestAnimationFrame(()=>layoutLabels(current));}if(reframe&&current>=0&&!exploring){resetSway();homeCamera.copy(cameraDestination(chapters[current]));camera.position.copy(homeCamera);currentTarget.set(...chapters[current].target);camera.lookAt(currentTarget);transition=null;}}
  addEventListener('resize',()=>resize(true));
- function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(!document.hidden&&!still)tick+=dt;const t=tick;
-  if(transition){let p=Math.min((performance.now()-transition.start)/transition.duration,1),e=p*p*p*(p*(p*6-15)+10);camera.position.lerpVectors(transition.fromPos,transition.toPos,e);currentTarget.lerpVectors(transition.fromTarget,transition.toTarget,e);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.opacity=String(Math.max(0,(p-.55)/.45));if(p===1){transition=null;controls.target.copy(currentTarget);}}
-  else if(current>=0){labelSets[current].labels.forEach(l=>l.el.style.opacity='1');if(!exploring){camera.lookAt(currentTarget);}else controls.update();}
-  human.update(t,still);therapist.update(t,still);if(!still){ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
+ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),active=!document.hidden&&!still&&!paused;if(active)tick+=dt;const t=tick;
+  if(transition){let p=Math.min((performance.now()-transition.start)/transition.duration,1),e=p*p*p*(p*(p*6-15)+10);camera.position.lerpVectors(transition.fromPos,transition.toPos,e);currentTarget.lerpVectors(transition.fromTarget,transition.toTarget,e);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.opacity=String(Math.max(0,(p-.55)/.45));if(p===1){transition=null;settledAt=tick;controls.target.copy(currentTarget);}}
+  else if(current>=0){labelSets[current].labels.forEach(l=>l.el.style.opacity='1');if(!exploring){
+   if(active){const ease=Math.min((tick-settledAt)/1.3,1);desiredSway.set((pointer.x*.075+drag.x*.095+Math.sin(t*.31)*.008)*ease,(-pointer.y*.025-drag.y*.025+Math.sin(t*.43)*.004)*ease);sway.lerp(desiredSway,1-Math.exp(-dt*3.8));camera.position.copy(homeCamera);camera.lookAt(currentTarget);liveRight.set(1,0,0).applyQuaternion(camera.quaternion);liveUp.set(0,1,0).applyQuaternion(camera.quaternion);camera.position.addScaledVector(liveRight,sway.x).addScaledVector(liveUp,sway.y);camera.lookAt(currentTarget);}
+   else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
+  }else controls.update();}
+  human.update(t,!active,chapters[current]?.typing&&(!!transition||t%11<7));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
   renderer.info.reset();composer.render();css.render(labelScene,camera);
  }
  setChapter(0,true);animate();
- return {setChapter,setMotion(value){still=value;},setExplore(value){exploring=value;controls.enabled=value;controls.target.copy(currentTarget);transition=null;},getState(){return {chapter:current,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),target:currentTarget.toArray(),render:renderer.info.render,labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
+ return {setChapter,setMotion(value){still=value;resetSway();},setPaused(value){paused=value;pointer.set(0,0);},setExplore(value){exploring=value;controls.enabled=value;controls.target.copy(currentTarget);transition=null;resetSway();},getState(){return {chapter:current,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
 }

@@ -1,8 +1,8 @@
 # בתוך השיחה | Inside the conversation
 
-A Hebrew 3D research presentation by Elad Refoua. Research program led by Prof. Dorit Hadar-Shoval.
+A Hebrew 3D research presentation by Elad Refoua. AI PSYCH project led by Dr. Dorit Hadar-Shoval and Elad Refoua.
 
-The 21 stages follow the original Artificial Third conference presentation (16 September 2026). Use the arrows, the five-part route, or the map. F opens fullscreen; M opens the map; N opens sources. The automatic tour is a silent visual preview. The live-speaker pacing totals 15 minutes.
+The 21 stages follow the original Artificial Third conference presentation (16 September 2026). Use the arrows, the five-part route, or the map. Click a chart, panel, or slide title to enlarge it; G opens the full slide. Escape closes the enlarged view. F opens fullscreen; M opens the map; N opens sources. Slide 4 has three explicit viewpoint routes. Research cards identify each paper and its status. Bounded mouse movement and dragging add subtle parallax; the live-motion button freezes motion, and reduced-motion settings are respected. The automatic tour is a silent visual preview. The live-speaker pacing totals 15 minutes.
 
 The male patient, female therapist and conversation are illustrative. Aggregate research findings are sourced in the interface; preliminary and correlational findings are identified. No individual participant records or live chat service are included.
 
