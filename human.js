@@ -55,7 +55,7 @@ export async function createHuman(therapist=false){
   const body=new THREE.Mesh(new THREE.BoxGeometry(.17,.30,.018),new THREE.MeshStandardMaterial({color:0x101518,metalness:.65,roughness:.3}));phone.add(body);
   const screen=new THREE.Mesh(new THREE.PlaneGeometry(.151,.276),new THREE.MeshBasicMaterial({color:0x9ecdc8}));screen.position.z=.010;phone.add(screen);
   for(let i=0;i<6;i++){const msg=new THREE.Mesh(new THREE.PlaneGeometry(i%2?.09:.115,.015),new THREE.MeshBasicMaterial({color:i%2?0x347778:0xdae9dd}));msg.position.set(i%2?-.017:.005,.085-i*.03,.011);phone.add(msg);}
-  phone.position.set(0,1.15,.49);phone.rotation.set(-.5,Math.PI,0);phone.scale.setScalar(.8);if(!therapist)group.add(phone);
+  phone.position.set(0,1.15,.49);phone.rotation.set(.5,Math.PI,0);phone.scale.setScalar(.8);if(!therapist)group.add(phone);
   if(therapist){const notebook=new THREE.Mesh(new THREE.BoxGeometry(.30,.025,.24),new THREE.MeshStandardMaterial({color:0xddd0b6,roughness:.94}));notebook.position.set(0,1.10,.42);notebook.rotation.x=.18;group.add(notebook);}
   const light=new THREE.PointLight(0x91e8f0,.12,1.2,2);light.position.set(0,1.36,.48);if(!therapist)group.add(light);
   const baseSpine=bones.Spine.quaternion.clone(),baseHead=bones.Head.quaternion.clone();
@@ -70,6 +70,6 @@ export async function createHuman(therapist=false){
    for(const side of ['Left','Right']){const tap=Math.pow(Math.max(0,Math.sin(t*7+(side==='Left'?0:Math.PI))),3)*activity;
     for(const [part,angle] of [['Hand',.038],['HandThumb1',.24],['HandThumb2',.32]]){const name=side+part;if(rest[name])bones[name].quaternion.copy(rest[name]).multiply(q.setFromAxisAngle(xAxis,tap*angle));}
    }
-   if(!therapist){phone.rotation.x=-.5+Math.sin(t*7)*.009*activity;light.intensity=.12+.08*activity;typingDots.forEach((dot,i)=>{dot.visible=activity>.1;dot.scale.setScalar(.65+.35*Math.sin(t*6-i*1.2));});}
+   if(!therapist){phone.rotation.x=.5+Math.sin(t*7)*.009*activity;light.intensity=.12+.08*activity;typingDots.forEach((dot,i)=>{dot.visible=activity>.1;dot.scale.setScalar(.65+.35*Math.sin(t*6-i*1.2));});}
   }};
 }

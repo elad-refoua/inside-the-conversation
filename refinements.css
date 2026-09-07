@@ -10,6 +10,11 @@
   --surface-muted: #d2e1e3;
 }
 .world-label { will-change: auto; }
+.journey-cue { position: absolute; z-index: 4; inset: 38% auto auto 50%; transform: translate(-50%,-50%); width: max-content; max-width: 84vw; padding: 15px 24px; background: #112e38f5; color: #f7faf8; border-radius: 10px; text-align: center; pointer-events: none; direction: rtl; box-shadow: 0 8px 35px #0003; }
+.journey-cue strong { display: block; font-size: 24px; font-weight: 650; line-height: 1.3; }
+.journey-cue span { display: block; font-size: 17px; color: #d2e1e3; margin-top: 5px; }
+.journey-cue[hidden] { display: none; }
+@media (max-width:700px) { .journey-cue { top: 38%; padding: 11px 17px; } .journey-cue strong { font-size: 19px; } .journey-cue span { font-size: 14px; } }
 .exhibit {
   background: var(--paper);
   color: var(--navy);
@@ -47,6 +52,8 @@
   border-radius: 16px 16px 16px 4px;
 }
 .world-label.human .bubble .eyebrow { color: #655039; }
+#world .world-label.human .bubble p,
+#mobile-notes .world-label.human .bubble p { color: #352c24; }
 .world-label .bubble .eyebrow { color: #b6dfe0; }
 .world-label .glass { background: var(--surface-ink); border: 0; border-radius: 16px; }
 /* Fine dividers do not need nested CSS borders in the projected planes. */

@@ -7,13 +7,15 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=b8e900fcfb';
-import {formatInlineBidi} from './bidi.js?v=b8e900fcfb';
+import {createHuman} from './human.js?v=9d75beb2b0';
+import {formatInlineBidi} from './bidi.js?v=9d75beb2b0';
+import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=9d75beb2b0';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
  const scene=new THREE.Scene();scene.background=new THREE.Color('#08161e');scene.fog=new THREE.FogExp2('#08161e',.021);
  const camera=new THREE.PerspectiveCamera(43,innerWidth/innerHeight,.06,150);
+ let renderDirty=true;
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.info.autoReset=false;
  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;container.appendChild(renderer.domElement);
  const sceneShade=document.querySelector('.vignette');container.appendChild(sceneShade);sceneShade.style.zIndex='1';
@@ -59,6 +61,14 @@ export async function createWorld(container,chapters){
  cyl(.43,.43,.045,wood,[-3.1,.69,.63]);cyl(.035,.055,.63,brass,[-3.1,.34,.63]);cyl(.25,.25,.025,brass,[-3.1,.03,.63]);
  const mug=cyl(.083,.071,.13,mat('#eee3cd',.35),[-3.12,.77,.64]);mesh(new THREE.TorusGeometry(.052,.015,10,24),mat('#eee3cd',.35),[-3.03,.78,.64]);cyl(.073,.073,.005,mat('#392418',.3),[-3.12,.837,.64]);
  for(let i=0;i<3;i++){const book=box(.36,.035,.23,mat(['#b18063','#24444d','#c2b59a'][i]),[-3.06,.73+i*.036,.30],scene,.004);book.rotation.y=.2-i*.15;}
+ // The late-night stop has an ordinary landmark beside the phone: a small
+ // analog clock resting on the books. Its time belongs to the fictional room.
+ const bedsideClock=new THREE.Group();bedsideClock.position.set(-3.25,.96,.35);bedsideClock.lookAt(V(-4.7,1.65,2.1));scene.add(bedsideClock);
+ const clockBody=cyl(.145,.145,.035,brass,[0,0,0],bedsideClock);clockBody.rotation.x=Math.PI/2;
+ mesh(new THREE.CircleGeometry(.132,64),mat('#132b32',.55),[0,0,.019],bedsideClock);
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;const mark=box(.007,.015,.003,mat('#ecdfc5'),[Math.sin(a)*.115,Math.cos(a)*.115,.022],bedsideClock,.001);mark.rotation.z=-a;}
+ for(const [angle,length,width] of [[(2+17/60)*Math.PI/6,.067,.008],[17*Math.PI/30,.101,.005]]){const hand=new THREE.Group();hand.rotation.z=-angle;bedsideClock.add(hand);box(width,length,.004,mat('#f3e6cc'),[0,length/2,.025],hand,.002);}
+ mesh(new THREE.SphereGeometry(.009,12,8),brass,[0,0,.030],bedsideClock);
  // Lamp: warm, restrained practical light on face and hands.
  cyl(.20,.24,.035,brass,[-3.55,.025,-.9]);cyl(.019,.019,2.5,brass,[-3.55,1.27,-.9]);const shade=mesh(new THREE.LatheGeometry([new THREE.Vector2(.30,0),new THREE.Vector2(.29,.10),new THREE.Vector2(.25,.22),new THREE.Vector2(.17,.30),new THREE.Vector2(.065,.34)],64),brass,[-3.55,2.35,-.9]);shade.material.side=THREE.DoubleSide;const bulb=mesh(new THREE.SphereGeometry(.09,16,12),amber,[-3.55,2.40,-.9]);
  const lamp=new THREE.PointLight('#ffcd92',16,7,2);lamp.position.set(-3.55,2.4,-.9);scene.add(lamp);
@@ -100,8 +110,8 @@ export async function createWorld(container,chapters){
  // Fit each exhibition plane at its destination, then leave it anchored in
  // world space. Travelling or orbiting the camera creates real parallax.
  function layoutLabels(index){
-  const ch=chapters[index],w=innerWidth,h=innerHeight;if(w<h)return;
-  const director=new THREE.PerspectiveCamera(43,w/h,.06,150);director.position.copy(cameraDestination(ch));director.lookAt(V(...ch.target));director.updateMatrixWorld();
+  renderDirty=true;const ch=chapters[index],w=innerWidth,h=innerHeight;if(w<h)return;
+  const shot=cameraStop(index,w/h),director=new THREE.PerspectiveCamera(43,w/h,.06,150);director.position.copy(shot.position);director.lookAt(shot.target);director.updateMatrixWorld();
   const d=5.5,unit=2*d*Math.tan(THREE.MathUtils.degToRad(43/2))/h;
   const forward=V(0,0,-1).applyQuaternion(director.quaternion),right=V(1,0,0).applyQuaternion(director.quaternion),up=V(0,1,0).applyQuaternion(director.quaternion),center=director.position.clone().addScaledVector(forward,d);
   const headingBottom=document.querySelector('#chapter-heading').getBoundingClientRect().bottom;const top=Math.max(h<780?185:224,headingBottom+18),bottom=h-136,available=bottom-top;
@@ -144,22 +154,34 @@ export async function createWorld(container,chapters){
   if(ch.visual==='needs'){const ids=['need_com_users','need_con_users','need_pred_users','need_tru_users','need_acc_users'];ids.forEach((id,i)=>{const h=window.SOURCE_FACTS.facts[id].value*.80;const c=i<3?'#7ccddb':'#d2a58e';const o=box(.24,h,.24,new THREE.MeshStandardMaterial({color:c,metalness:.3,roughness:.3,emissive:c,emissiveIntensity:.1}),[-.55+i*.48,h/2,-2.65],chartGroup);ring(.18,.04,new THREE.MeshBasicMaterial({color:c}),chartGroup,[-.55+i*.48,-2.65]);});}
   if(ch.visual==='paths'){const colors=['#8dcacf','#e2bc79','#e68e7e'];[[0,.2,2.8],[-1.8,.2,3.3],[2.8,.2,3.3]].forEach((p,i)=>{tube([[-1,.08,.9],[-.6,.12,1.8],p,[p[0],.2,p[2]+1.5]],colors[i],.018,chartGroup);});}
  }
- function cameraDestination(ch){const p=V(...ch.camera);if(innerWidth<innerHeight){const center=V(...ch.target);p.sub(center).multiplyScalar(1.7).add(center);}return p;}
- function setChapter(index,immediate=false){const ch=chapters[index];exploring=false;controls.enabled=false;const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(cameraDestination(ch));if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.set(...ch.target);camera.lookAt(currentTarget);transition=null;}else{transition={start:performance.now(),duration:2400,fromPos,fromTarget,toPos:homeCamera.clone(),toTarget:V(...ch.target)};}
- current=index;therapistLight.intensity=ch.therapist?32:13;labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity='1';x.el.style.visibility=(immediate||still)?'visible':'hidden';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
+ const journeyCue=document.createElement('div');journeyCue.className='journey-cue';journeyCue.hidden=true;
+ const journeyPlace=document.createElement('strong'),journeyReason=document.createElement('span');journeyCue.append(journeyPlace,journeyReason);container.appendChild(journeyCue);
+ function shotAt(index){return cameraStop(index,innerWidth/innerHeight);}
+ function setChapter(index,immediate=false){
+  renderDirty=true;const ch=chapters[index],shot=shotAt(index),previous=current,interrupted=!!transition;
+  exploring=false;controls.enabled=false;
+  const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(shot.position);
+  if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.copy(shot.target);camera.lookAt(currentTarget);transition=null;}
+  else {transition=cameraJourney(fromPos,fromTarget,interrupted?-1:previous,index,innerWidth/innerHeight);transition.lastTime=performance.now();}
+  current=index;therapistLight.intensity=ch.therapist?32:13;lamp.intensity=shot.id==='night'?23:16;
+  journeyPlace.textContent=shot.place;journeyReason.textContent=shot.reason;journeyCue.hidden=!transition;
+  container.classList.toggle('travelling',!!transition);
+  labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity='1';x.el.style.visibility=transition?'hidden':'visible';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});
+  chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
  }
- function resize(reframe=false){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<h?62:43;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);css.setSize(w,h);if(current>=0){layoutLabels(current);requestAnimationFrame(()=>layoutLabels(current));}if(reframe&&current>=0&&!exploring){resetSway();homeCamera.copy(cameraDestination(chapters[current]));camera.position.copy(homeCamera);currentTarget.set(...chapters[current].target);camera.lookAt(currentTarget);transition=null;}}
+ function resize(reframe=false){renderDirty=true;const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<h?62:43;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);css.setSize(w,h);if(current>=0){layoutLabels(current);requestAnimationFrame(()=>layoutLabels(current));}if(reframe&&current>=0&&!exploring){resetSway();const shot=shotAt(current);homeCamera.copy(shot.position);camera.position.copy(homeCamera);currentTarget.copy(shot.target);camera.lookAt(currentTarget);transition=null;journeyCue.hidden=true;container.classList.remove('travelling');}}
  addEventListener('resize',()=>resize(true));
- function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),active=!document.hidden&&!still&&!paused;if(active)tick+=dt;const t=tick;
-  if(transition){let p=Math.min((performance.now()-transition.start)/transition.duration,1),e=p*p*p*(p*(p*6-15)+10);camera.position.lerpVectors(transition.fromPos,transition.toPos,e);currentTarget.lerpVectors(transition.fromTarget,transition.toTarget,e);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.visibility=p>.78?'visible':'hidden';if(p===1){transition=null;settledAt=tick;controls.target.copy(currentTarget);}}
+ addEventListener('visibilitychange',()=>{renderDirty=true;if(transition)transition.lastTime=performance.now();});
+ function animate(){requestAnimationFrame(animate);const rawDt=clock.getDelta(),dt=Math.min(rawDt,.05),active=!document.hidden&&!still&&!paused;if(document.hidden)return;if(!renderDirty&&!transition&&!exploring&&(still||paused))return;renderDirty=false;if(active)tick+=dt;const t=tick;
+  if(transition){const now=performance.now();if(!document.hidden&&!paused)transition.elapsed+=now-transition.lastTime;transition.lastTime=now;const p=Math.min(transition.elapsed/transition.duration,1),pose=transition.sample(p);camera.position.copy(pose.position);currentTarget.copy(pose.target);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.visibility=p>.95?'visible':'hidden';if(p===1){transition=null;settledAt=tick;controls.target.copy(currentTarget);journeyCue.hidden=true;container.classList.remove('travelling');}}
   else if(current>=0){labelSets[current].labels.forEach(l=>l.el.style.visibility='visible');if(!exploring){
-   if(active){const ease=Math.min((tick-settledAt)/1.3,1);desiredSway.set((pointer.x*.075+drag.x*.095+Math.sin(t*.31)*.008)*ease,(-pointer.y*.025-drag.y*.025+Math.sin(t*.43)*.004)*ease);sway.lerp(desiredSway,1-Math.exp(-dt*3.8));camera.position.copy(homeCamera);camera.lookAt(currentTarget);liveRight.set(1,0,0).applyQuaternion(camera.quaternion);liveUp.set(0,1,0).applyQuaternion(camera.quaternion);camera.position.addScaledVector(liveRight,sway.x).addScaledVector(liveUp,sway.y);camera.lookAt(currentTarget);}
+   if(active){const ease=Math.min((tick-settledAt)/1.3,1);desiredSway.set((pointer.x*.075+drag.x*.095)*ease,(-pointer.y*.025-drag.y*.025)*ease);sway.lerp(desiredSway,1-Math.exp(-dt*3.8));camera.position.copy(homeCamera);camera.lookAt(currentTarget);liveRight.set(1,0,0).applyQuaternion(camera.quaternion);liveUp.set(0,1,0).applyQuaternion(camera.quaternion);camera.position.addScaledVector(liveRight,sway.x).addScaledVector(liveUp,sway.y);camera.lookAt(currentTarget);}
    else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
   }else controls.update();}
-  human.update(t,!active,chapters[current]?.typing&&(!!transition||t%11<7));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
+  const writing=TOUR_STOPS[current]?.activity==='type',atStop=tick-settledAt;human.update(t,!active,chapters[current]?.typing&&(!!transition||(writing&&(atStop<6||(atStop>12&&atStop<16)))));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
   renderer.info.reset();composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
  setChapter(0,true);animate();
- return {setChapter,setMotion(value){still=value;resetSway();},setPaused(value){paused=value;pointer.set(0,0);},setExplore(value){exploring=value;controls.enabled=value;controls.target.copy(currentTarget);transition=null;resetSway();},getState(){return {chapter:current,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
+ return {setChapter,setMotion(value){renderDirty=true;still=value;resetSway();},setPaused(value){renderDirty=true;paused=value;pointer.set(0,0);if(transition)transition.lastTime=performance.now();},setExplore(value){renderDirty=true;exploring=value;controls.enabled=value;controls.target.copy(currentTarget);transition=null;journeyCue.hidden=true;container.classList.remove('travelling');resetSway();},getState(){return {chapter:current,shot:TOUR_STOPS[current]?.id,place:TOUR_STOPS[current]?.place,journey:transition?{from:transition.fromIndex,to:transition.toIndex,progress:transition.elapsed/transition.duration,duration:transition.duration,length:transition.length}:null,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
 }
