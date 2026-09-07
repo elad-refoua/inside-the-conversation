@@ -7,9 +7,10 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=9d75beb2b0';
-import {formatInlineBidi} from './bidi.js?v=9d75beb2b0';
-import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=9d75beb2b0';
+import {createHuman} from './human.js?v=f9d4869b6a';
+import {formatInlineBidi} from './bidi.js?v=f9d4869b6a';
+import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=f9d4869b6a';
+import {finishRoom} from './room-finish.js?v=f9d4869b6a';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -53,7 +54,7 @@ export async function createWorld(container,chapters){
  const panorama=new THREE.Mesh(new THREE.CylinderGeometry(40,40,30,128,1,true),new THREE.MeshBasicMaterial({map:nightTexture,side:THREE.BackSide,fog:false,color:0xaab5c4}));panorama.position.y=9.7;panorama.rotation.y=.65;scene.add(panorama);
  // Lounge chair: sculpted upholstery, separate cushions, wood base and brass seams.
  function chair(position,rotation,colour=fabric){const g=new THREE.Group();scene.add(g);g.position.set(...position);g.rotation.y=rotation;box(.89,.22,.89,wood,[0,.48,0],g,.07);box(.80,.24,.80,colour,[0,.66,.03],g,.10);const back=box(.92,1.02,.22,colour,[0,1.09,-.35],g,.10);back.rotation.x=-.13;for(const x of [-.49,.49]){box(.15,.43,.91,colour,[x,.87,.03],g,.075);for(const z of [-.30,.33]){const leg=box(.055,.42,.055,brass,[x*.75,.24,z],g,.01);leg.rotation.z=x*.12;}}return g;}
- chair([-1.7,0,.15],.68);
+ const patientChair=chair([-1.7,0,.15],.68);
  const therapistFabric=mat('#3f6366',.96);therapistFabric.bumpMap=fabricNoise;therapistFabric.bumpScale=.018;
  const therapistChair=chair([3.3,0,-3.1],-.72,therapistFabric);
  const human=await createHuman();human.group.position.set(-1.7,0,.15);human.group.rotation.y=.68;scene.add(human.group);
@@ -100,6 +101,7 @@ export async function createWorld(container,chapters){
  const floating=new THREE.Group();scene.add(floating);
  for(let i=0;i<85;i++){const a=i*2.399,r=6+rand(i+90)*5;const p=mesh(new THREE.SphereGeometry(.012+rand(i+200)*.009,6,6),i%6?cyan:amber,[Math.cos(a)*r,.7+rand(i+330)*6,Math.sin(a)*r],floating);p.castShadow=false;}
  const footpath=tube([[-1.7,.015,1],[.5,.015,3.1],[3,.015,2.1],[4.7,.015,-1],[3.2,.015,-4]],'#a68d61',.012);
+ const roomFinish=await finishRoom({scene,renderer,wood,brass,fabric,therapistFabric,stone,wall,rug,secondRug,ai,aiCore,dots,rings,panorama,key,fill,backLight,footpath,floating,patientChair,therapistChair});
  // Each piece of text belongs to a location in the world. The camera reveals it.
  const labelScene=new THREE.Scene(),labelSets=[];
  // Use CSS-sized coordinates for browser compositing. The scene and camera
@@ -122,7 +124,7 @@ export async function createWorld(container,chapters){
    if(slot==='insight'){maxWidth=w*.30;maxHeight=Math.min(available,h*.37);cx=w*.186;cy=bottom-maxHeight/2;}
    if(ch.layout==='paired'){maxWidth=w*.36;maxHeight=available;cx=w*(i===0?.773:.227);cy=(top+bottom)/2;}
    if(ch.layout==='triptych'){maxWidth=w*.287;maxHeight=available*.58;cx=w*(.822-i*.322);cy=bottom-maxHeight/2;}
-   if(slot==='speech-left'){maxWidth=w*.30;maxHeight=h*.15;cx=w*.243;cy=top+h*.07;}
+   if(slot==='speech-left'){maxWidth=w*.26;maxHeight=h*.15;cx=w*.18;cy=top+h*.07;}
    if(slot==='speech-right'){maxWidth=w*.33;maxHeight=h*.29;cx=w*.79;cy=bottom-h*.13;}
    const naturalWidth=l.spec.width||520,naturalHeight=l.el.offsetHeight||300,ratio=Math.min(maxWidth/naturalWidth,maxHeight/naturalHeight);
    l.object.scale.setScalar(unit*ratio);l.object.position.copy(center).addScaledVector(right,(cx-w/2)*unit).addScaledVector(up,(h/2-cy)*unit);l.object.quaternion.copy(director.quaternion);
@@ -179,7 +181,7 @@ export async function createWorld(container,chapters){
    else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
   }else controls.update();}
   const writing=TOUR_STOPS[current]?.activity==='type',atStop=tick-settledAt;human.update(t,!active,chapters[current]?.typing&&(!!transition||(writing&&(atStop<6||(atStop>12&&atStop<16)))));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
-  renderer.info.reset();composer.render();
+  roomFinish.update(t);renderer.info.reset();composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
  setChapter(0,true);animate();

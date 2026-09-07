@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=9d75beb2b0';
-import {formatInlineBidi} from './bidi.js?v=9d75beb2b0';
+import {createWorld} from './world.js?v=f9d4869b6a';
+import {formatInlineBidi} from './bidi.js?v=f9d4869b6a';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
