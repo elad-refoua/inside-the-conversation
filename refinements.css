@@ -10,6 +10,37 @@
   --surface-muted: #d2e1e3;
 }
 .world-label { will-change: auto; }
+.needs-exhibit { padding: 0; background: transparent; box-shadow: none; border: 0; }
+#world .needs-exhibit { background: transparent; box-shadow: none; }
+#world .world-label .needs-exhibit::after { color: #e0ece8; text-shadow: 0 1px 4px #061018; }
+.needs-exhibit .exhibit-heading { background: #112e38; border-radius: 14px; padding: 20px 28px; margin: 0; }
+.needs-exhibit .exhibit-heading h2 { color: #f6f7f0; font-size: 34px; margin: 0 0 6px; }
+.needs-exhibit .exhibit-heading p { color: #e0d1b3; font-size: 22px; margin: 0; }
+.needs-exhibit.agentic .exhibit-heading p { color: #b5e0d9; }
+.needs-window { position: relative; height: 265px; }
+.needs-window svg { width: 100%; height: 100%; display: block; }
+#world .needs-window svg { visibility: hidden; }
+.needs-meaning { border-radius: 14px; padding: 22px 28px; background: #f5f7f4; text-align: right; }
+.needs-meaning h3 { color: #6e5329; font-size: 29px; margin: 0 0 17px; }
+.agentic .needs-meaning h3 { color: #096969; }
+.needs-meaning .needs-request-label { color: #516970; font-size: 18px; margin: 0 0 5px; }
+.needs-meaning .needs-request { color: #172f3b; font-size: 27px; line-height: 1.45; margin: 0; }
+#drawer .needs-window, #mobile-notes .needs-window { background: #f5f7f4; }
+#drawer .needs-exhibit, #mobile-notes .needs-exhibit { background: transparent !important; padding: 0; }
+@media (max-width:950px) and (orientation:landscape) {
+  .needs-chapter #paper-card { gap: 5px; padding: 8px 10px; }
+  .needs-chapter #paper-card .paper-sheet { display: none; }
+  .needs-chapter #paper-card .paper-info strong { font-size: 13px; line-height: 1.15; }
+  .needs-chapter #paper-card .paper-info small, .needs-chapter #paper-card .paper-info>span { font-size: 10px; }
+}
+@media (orientation:portrait) {
+  #mobile-notes .needs-exhibit .exhibit-heading { padding: 20px; }
+  #mobile-notes .needs-exhibit .exhibit-heading h2 { font-size: 27px; }
+  #mobile-notes .needs-exhibit .exhibit-heading p { font-size: 18px; }
+  #mobile-notes .needs-window { height: 200px; }
+  #mobile-notes .needs-meaning h3 { font-size: 24px; }
+  #mobile-notes .needs-meaning .needs-request { font-size: 22px; }
+}
 .clarity-exhibit .finding-main { background: #e3eeea; padding: 23px 26px; border-radius: 9px; margin: 20px 0; }
 .clarity-exhibit .finding-statement { color: #075f60; font-size: 29px; font-weight: 650; line-height: 1.42; margin: 0; }
 .clarity-exhibit .finding-context { color: #314f57; font-size: 20px; line-height: 1.45; margin: 13px 0 0; }

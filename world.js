@@ -7,11 +7,12 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=f8393648dd';
-import {formatInlineBidi} from './bidi.js?v=f8393648dd';
-import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption} from './camera-tour.js?v=f8393648dd';
-import {finishRoom} from './room-finish.js?v=f8393648dd';
-import {createAIFace} from './ai-face.js?v=f8393648dd';
+import {createHuman} from './human.js?v=337fddf299';
+import {formatInlineBidi} from './bidi.js?v=337fddf299';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption} from './camera-tour.js?v=337fddf299';
+import {finishRoom} from './room-finish.js?v=337fddf299';
+import {createAIFace} from './ai-face.js?v=337fddf299';
+import {createNeedsScenes} from './needs-scenes.js?v=337fddf299';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -104,6 +105,8 @@ export async function createWorld(container,chapters){
  const footpath=tube([[-1.7,.015,1],[.5,.015,3.1],[3,.015,2.1],[4.7,.015,-1],[3.2,.015,-4]],'#a68d61',.012);
  const roomFinish=await finishRoom({scene,renderer,wood,brass,fabric,therapistFabric,stone,wall,rug,secondRug,ai,aiCore,dots,rings,panorama,key,fill,backLight,footpath,floating,patientChair,therapistChair});
  const aiFace=createAIFace(ai);
+ const needsScenes=createNeedsScenes(scene);
+ const needsBounds=[needsScenes.relational,needsScenes.agentic].map(o=>{const b=new THREE.Box3().setFromObject(o);return {center:b.getCenter(V(0,0,0)),size:b.getSize(V(0,0,0))};});
  // Each piece of text belongs to a location in the world. The camera reveals it.
  const labelScene=new THREE.Scene(),labelSets=[];
  // Use CSS-sized coordinates for browser compositing. The scene and camera
@@ -131,6 +134,16 @@ export async function createWorld(container,chapters){
    if(w/h<1.5&&slot?.startsWith('speech-')){maxWidth=w*.31;maxHeight=h*.15;cx=w*(slot==='speech-left'?.18:.81);cy=bottom-h*.06;}
    const naturalWidth=l.spec.width||520,naturalHeight=l.el.offsetHeight||300,ratio=Math.min(maxWidth/naturalWidth,maxHeight/naturalHeight);
    l.object.scale.setScalar(unit*ratio);l.object.position.copy(center).addScaledVector(right,(cx-w/2)*unit).addScaledVector(up,(h/2-cy)*unit);l.object.quaternion.copy(director.quaternion);
+   if(index===11){
+    const slotEl=l.el.querySelector('.needs-window');
+    if(slotEl){
+     const model=i===0?needsScenes.relational:needsScenes.agentic,b=needsBounds[i],nearD=2.3,nearUnit=unit*nearD/d;
+     const sx=cx+(slotEl.offsetLeft+slotEl.offsetWidth/2-naturalWidth/2)*ratio,sy=cy+(slotEl.offsetTop+slotEl.offsetHeight/2-naturalHeight/2)*ratio;
+     const modelScale=nearUnit*ratio*Math.min(slotEl.offsetWidth*.9/b.size.x,slotEl.offsetHeight*.86/b.size.y);
+     model.quaternion.copy(director.quaternion);model.scale.setScalar(modelScale);
+     model.position.copy(director.position).addScaledVector(forward,nearD).addScaledVector(right,(sx-w/2)*nearUnit).addScaledVector(up,(h/2-sy)*nearUnit).sub(b.center.clone().multiplyScalar(modelScale).applyQuaternion(director.quaternion));
+    }
+   }
   }
  }
  const chartGroup=new THREE.Group();scene.add(chartGroup);
@@ -185,6 +198,7 @@ export async function createWorld(container,chapters){
    else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
   }else controls.update();}
   const writing=TOUR_STOPS[current]?.activity==='type',atStop=tick-settledAt;human.update(t,!active,chapters[current]?.typing&&(!!transition||(writing&&(atStop<6||(atStop>12&&atStop<16)))));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
+  needsScenes.setEnabled(current===11&&innerWidth>=innerHeight&&(!transition||transition.elapsed/transition.duration>.95));needsScenes.update(t,!active);
   roomFinish.update(t);aiFace.update(dt,!active);renderer.info.reset();composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
