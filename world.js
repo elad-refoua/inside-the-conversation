@@ -7,12 +7,12 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=337fddf299';
-import {formatInlineBidi} from './bidi.js?v=337fddf299';
-import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption} from './camera-tour.js?v=337fddf299';
-import {finishRoom} from './room-finish.js?v=337fddf299';
-import {createAIFace} from './ai-face.js?v=337fddf299';
-import {createNeedsScenes} from './needs-scenes.js?v=337fddf299';
+import {createHuman} from './human.js?v=19a6969abf';
+import {formatInlineBidi} from './bidi.js?v=19a6969abf';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption} from './camera-tour.js?v=19a6969abf';
+import {finishRoom} from './room-finish.js?v=19a6969abf';
+import {createAIFace} from './ai-face.js?v=19a6969abf';
+import {createNeedsScenes} from './needs-scenes.js?v=19a6969abf';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
