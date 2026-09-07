@@ -7,10 +7,11 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=2f25d9f51b';
-import {formatInlineBidi} from './bidi.js?v=2f25d9f51b';
-import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=2f25d9f51b';
-import {finishRoom} from './room-finish.js?v=2f25d9f51b';
+import {createHuman} from './human.js?v=f8393648dd';
+import {formatInlineBidi} from './bidi.js?v=f8393648dd';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption} from './camera-tour.js?v=f8393648dd';
+import {finishRoom} from './room-finish.js?v=f8393648dd';
+import {createAIFace} from './ai-face.js?v=f8393648dd';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -102,6 +103,7 @@ export async function createWorld(container,chapters){
  for(let i=0;i<85;i++){const a=i*2.399,r=6+rand(i+90)*5;const p=mesh(new THREE.SphereGeometry(.012+rand(i+200)*.009,6,6),i%6?cyan:amber,[Math.cos(a)*r,.7+rand(i+330)*6,Math.sin(a)*r],floating);p.castShadow=false;}
  const footpath=tube([[-1.7,.015,1],[.5,.015,3.1],[3,.015,2.1],[4.7,.015,-1],[3.2,.015,-4]],'#a68d61',.012);
  const roomFinish=await finishRoom({scene,renderer,wood,brass,fabric,therapistFabric,stone,wall,rug,secondRug,ai,aiCore,dots,rings,panorama,key,fill,backLight,footpath,floating,patientChair,therapistChair});
+ const aiFace=createAIFace(ai);
  // Each piece of text belongs to a location in the world. The camera reveals it.
  const labelScene=new THREE.Scene(),labelSets=[];
  // Use CSS-sized coordinates for browser compositing. The scene and camera
@@ -167,7 +169,8 @@ export async function createWorld(container,chapters){
   if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.copy(shot.target);camera.lookAt(currentTarget);transition=null;}
   else {transition=cameraJourney(fromPos,fromTarget,interrupted?-1:previous,index,innerWidth/innerHeight);transition.lastTime=performance.now();}
   current=index;therapistLight.intensity=ch.therapist?32:13;lamp.intensity=shot.id==='night'?23:16;
-  journeyPlace.textContent=shot.place;journeyReason.textContent=shot.reason;journeyCue.hidden=!transition;
+  aiFace.setEnabled(index===10,immediate||still);
+  journeyPlace.textContent=transitionCaption(previous,index);journeyReason.textContent='';journeyCue.hidden=!transition||!journeyPlace.textContent;
   container.classList.toggle('travelling',!!transition);
   labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity='1';x.el.style.visibility=transition?'hidden':'visible';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});
   chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
@@ -182,7 +185,7 @@ export async function createWorld(container,chapters){
    else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
   }else controls.update();}
   const writing=TOUR_STOPS[current]?.activity==='type',atStop=tick-settledAt;human.update(t,!active,chapters[current]?.typing&&(!!transition||(writing&&(atStop<6||(atStop>12&&atStop<16)))));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
-  roomFinish.update(t);renderer.info.reset();composer.render();
+  roomFinish.update(t);aiFace.update(dt,!active);renderer.info.reset();composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
  setChapter(0,true);animate();

@@ -28,6 +28,14 @@ export const TOUR_STOPS = [
 
 const v = a => new THREE.Vector3(...a);
 
+// Only changes of conversational focus need an audience-facing signpost.
+const focusGroups=['room','room','room','room','person','person','person','person','person','room','ai','ai','ai','room','person','therapist','therapist','room','room','room','room'];
+export function transitionCaption(fromIndex,toIndex){
+  const group=focusGroups[toIndex];
+  if(fromIndex<0||focusGroups[fromIndex]===group)return '';
+  return ({person:'אל האדם',ai:'אל הבינה',therapist:'אל המטפלת'})[group]||'';
+}
+
 export function cameraStop(index,aspect=16/9){
   const stop=TOUR_STOPS[index],focus=v(stop.focus),position=v(stop.eye);
   const portrait=aspect<1,fov=portrait?62:43;
