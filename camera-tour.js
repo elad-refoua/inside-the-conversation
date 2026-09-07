@@ -32,6 +32,10 @@ export function cameraStop(index,aspect=16/9){
   const stop=TOUR_STOPS[index],focus=v(stop.focus),position=v(stop.eye);
   const portrait=aspect<1,fov=portrait?62:43;
   if(portrait)position.sub(focus).multiplyScalar(1.7).add(focus);
+  // Fit the entire relationship into compact landscape panels as well as
+  // presentation screens; preserve the authored close-up distances.
+  const ensemble=['arrival','world','room-map','time','shared-responsibility','beyond-chat','departure'].includes(stop.id);
+  if(!portrait&&ensemble)position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
   // Keep the physical subject in the open area between the reading panels.
   const director=new THREE.PerspectiveCamera(fov,aspect,.06,150);
   director.position.copy(position);director.lookAt(focus);

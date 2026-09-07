@@ -7,10 +7,10 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=f9d4869b6a';
-import {formatInlineBidi} from './bidi.js?v=f9d4869b6a';
-import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=f9d4869b6a';
-import {finishRoom} from './room-finish.js?v=f9d4869b6a';
+import {createHuman} from './human.js?v=2f25d9f51b';
+import {formatInlineBidi} from './bidi.js?v=2f25d9f51b';
+import {cameraStop,cameraJourney,TOUR_STOPS} from './camera-tour.js?v=2f25d9f51b';
+import {finishRoom} from './room-finish.js?v=2f25d9f51b';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -126,6 +126,7 @@ export async function createWorld(container,chapters){
    if(ch.layout==='triptych'){maxWidth=w*.287;maxHeight=available*.58;cx=w*(.822-i*.322);cy=bottom-maxHeight/2;}
    if(slot==='speech-left'){maxWidth=w*.26;maxHeight=h*.15;cx=w*.18;cy=top+h*.07;}
    if(slot==='speech-right'){maxWidth=w*.33;maxHeight=h*.29;cx=w*.79;cy=bottom-h*.13;}
+   if(w/h<1.5&&slot?.startsWith('speech-')){maxWidth=w*.31;maxHeight=h*.15;cx=w*(slot==='speech-left'?.18:.81);cy=bottom-h*.06;}
    const naturalWidth=l.spec.width||520,naturalHeight=l.el.offsetHeight||300,ratio=Math.min(maxWidth/naturalWidth,maxHeight/naturalHeight);
    l.object.scale.setScalar(unit*ratio);l.object.position.copy(center).addScaledVector(right,(cx-w/2)*unit).addScaledVector(up,(h/2-cy)*unit);l.object.quaternion.copy(director.quaternion);
   }
