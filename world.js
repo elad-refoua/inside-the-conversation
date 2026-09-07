@@ -7,8 +7,8 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=a2fecfe3f8';
-import {formatInlineBidi} from './bidi.js?v=a2fecfe3f8';
+import {createHuman} from './human.js?v=45b8c826d7';
+import {formatInlineBidi} from './bidi.js?v=45b8c826d7';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
