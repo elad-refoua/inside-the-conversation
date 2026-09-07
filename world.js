@@ -7,8 +7,8 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=45b8c826d7';
-import {formatInlineBidi} from './bidi.js?v=45b8c826d7';
+import {createHuman} from './human.js?v=b8e900fcfb';
+import {formatInlineBidi} from './bidi.js?v=b8e900fcfb';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -92,6 +92,10 @@ export async function createWorld(container,chapters){
  const footpath=tube([[-1.7,.015,1],[.5,.015,3.1],[3,.015,2.1],[4.7,.015,-1],[3.2,.015,-4]],'#a68d61',.012);
  // Each piece of text belongs to a location in the world. The camera reveals it.
  const labelScene=new THREE.Scene(),labelSets=[];
+ // Use CSS-sized coordinates for browser compositing. The scene and camera
+ // receive the same scale, so projected positions and parallax are unchanged.
+ // This avoids nesting pixel borders/text inside transforms near scale(.004).
+ const cssWorldScale=100,cssCamera=camera.clone();labelScene.scale.setScalar(cssWorldScale);
  for(let ci=0;ci<chapters.length;ci++){const group=new THREE.Group();labelScene.add(group);const chapter=chapters[ci];const labels=[];for(const spec of chapter.labels){const el=document.createElement('div');el.className='world-label '+(spec.tone||'');el.dir='rtl';el.dataset.chapter=ci;el.innerHTML=spec.html;formatInlineBidi(el);if(spec.width)el.style.width=spec.width+'px';const object=new CSS3DObject(el);el.style.pointerEvents='auto';el.dataset.label=labels.length;if(!el.querySelector('button')){el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','הגדלה: '+(el.querySelector('h2')?.textContent||chapter.title));}el.title='לחצו להגדלה';object.position.set(...spec.pos);object.scale.setScalar(spec.scale||.004);const aim=V(...chapter.camera);object.lookAt(aim);group.add(object);labels.push({el,object,spec});}group.visible=false;labelSets.push({group,labels});}
  // Fit each exhibition plane at its destination, then leave it anchored in
  // world space. Travelling or orbiting the camera creates real parallax.
@@ -142,18 +146,19 @@ export async function createWorld(container,chapters){
  }
  function cameraDestination(ch){const p=V(...ch.camera);if(innerWidth<innerHeight){const center=V(...ch.target);p.sub(center).multiplyScalar(1.7).add(center);}return p;}
  function setChapter(index,immediate=false){const ch=chapters[index];exploring=false;controls.enabled=false;const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(cameraDestination(ch));if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.set(...ch.target);camera.lookAt(currentTarget);transition=null;}else{transition={start:performance.now(),duration:2400,fromPos,fromTarget,toPos:homeCamera.clone(),toTarget:V(...ch.target)};}
- current=index;therapistLight.intensity=ch.therapist?32:13;labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity=(immediate||still)?'1':'0';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
+ current=index;therapistLight.intensity=ch.therapist?32:13;labelSets.forEach((set,i)=>{set.group.visible=i===index;set.labels.forEach(x=>{x.el.style.opacity='1';x.el.style.visibility=(immediate||still)?'visible':'hidden';x.el.setAttribute('aria-hidden',i===index?'false':'true');});});chart(ch);setCue(ch);controls.target.copy(currentTarget);resize();
  }
  function resize(reframe=false){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<h?62:43;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setSize(w,h);css.setSize(w,h);if(current>=0){layoutLabels(current);requestAnimationFrame(()=>layoutLabels(current));}if(reframe&&current>=0&&!exploring){resetSway();homeCamera.copy(cameraDestination(chapters[current]));camera.position.copy(homeCamera);currentTarget.set(...chapters[current].target);camera.lookAt(currentTarget);transition=null;}}
  addEventListener('resize',()=>resize(true));
  function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),active=!document.hidden&&!still&&!paused;if(active)tick+=dt;const t=tick;
-  if(transition){let p=Math.min((performance.now()-transition.start)/transition.duration,1),e=p*p*p*(p*(p*6-15)+10);camera.position.lerpVectors(transition.fromPos,transition.toPos,e);currentTarget.lerpVectors(transition.fromTarget,transition.toTarget,e);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.opacity=String(Math.max(0,(p-.55)/.45));if(p===1){transition=null;settledAt=tick;controls.target.copy(currentTarget);}}
-  else if(current>=0){labelSets[current].labels.forEach(l=>l.el.style.opacity='1');if(!exploring){
+  if(transition){let p=Math.min((performance.now()-transition.start)/transition.duration,1),e=p*p*p*(p*(p*6-15)+10);camera.position.lerpVectors(transition.fromPos,transition.toPos,e);currentTarget.lerpVectors(transition.fromTarget,transition.toTarget,e);camera.lookAt(currentTarget);for(const l of labelSets[current].labels)l.el.style.visibility=p>.78?'visible':'hidden';if(p===1){transition=null;settledAt=tick;controls.target.copy(currentTarget);}}
+  else if(current>=0){labelSets[current].labels.forEach(l=>l.el.style.visibility='visible');if(!exploring){
    if(active){const ease=Math.min((tick-settledAt)/1.3,1);desiredSway.set((pointer.x*.075+drag.x*.095+Math.sin(t*.31)*.008)*ease,(-pointer.y*.025-drag.y*.025+Math.sin(t*.43)*.004)*ease);sway.lerp(desiredSway,1-Math.exp(-dt*3.8));camera.position.copy(homeCamera);camera.lookAt(currentTarget);liveRight.set(1,0,0).applyQuaternion(camera.quaternion);liveUp.set(0,1,0).applyQuaternion(camera.quaternion);camera.position.addScaledVector(liveRight,sway.x).addScaledVector(liveUp,sway.y);camera.lookAt(currentTarget);}
    else if(still){camera.position.copy(homeCamera);camera.lookAt(currentTarget);}
   }else controls.update();}
   human.update(t,!active,chapters[current]?.typing&&(!!transition||t%11<7));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
-  renderer.info.reset();composer.render();css.render(labelScene,camera);
+  renderer.info.reset();composer.render();
+  cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
  setChapter(0,true);animate();
  return {setChapter,setMotion(value){still=value;resetSway();},setPaused(value){paused=value;pointer.set(0,0);},setExplore(value){exploring=value;controls.enabled=value;controls.target.copy(currentTarget);transition=null;resetSway();},getState(){return {chapter:current,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
