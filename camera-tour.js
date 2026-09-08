@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {PHONE_STOPS} from './phone-space.js?v=69bd803d1d';
 
 // An authored walk through this room, in the existing PowerPoint order.
 // Coordinates refer to the actual person, phone, table, AI and therapist.
@@ -26,11 +27,21 @@ export const TOUR_STOPS = [
   {id:'departure',place:'מבט אחרון על המסע',reason:'האדם, הכלי והצוות בתוך תמונה רחבה',eye:[5.8,6.5,10],focus:[.3,.8,-.9],frame:.5}
 ];
 
+// One continuous conversation inside the phone, then back to the person.
+for(let i=0;i<3;i++)Object.assign(TOUR_STOPS[i+5],PHONE_STOPS[i],{activity:'type',via:[]});
+// The therapist uses the same physical research display for these two stops.
+Object.assign(TOUR_STOPS[12],{eye:[2.8,2.4,2.25],focus:[.5,2.05,0]});
+Object.assign(TOUR_STOPS[15],{eye:[5,2.55,2.1],focus:[3.3,1.75,-3.1]});
+Object.assign(TOUR_STOPS[16],{eye:[5.12,2.58,2.18],focus:[3.3,1.75,-3.1],via:[]});
+export const isPhoneStop=index=>index>=5&&index<=7;
+
 const v = a => new THREE.Vector3(...a);
 
 // Only changes of conversational focus need an audience-facing signpost.
 const focusGroups=['room','room','room','room','person','person','person','person','person','room','ai','ai','ai','room','person','therapist','therapist','room','room','room','room'];
 export function transitionCaption(fromIndex,toIndex){
+  if(isPhoneStop(toIndex)&&!isPhoneStop(fromIndex))return 'אל תוך השיחה';
+  if(isPhoneStop(fromIndex)&&!isPhoneStop(toIndex))return 'בחזרה אל החדר';
   const group=focusGroups[toIndex];
   if(fromIndex<0||focusGroups[fromIndex]===group)return '';
   return ({person:'אל האדם',ai:'אל הבינה',therapist:'אל המטפלת'})[group]||'';
@@ -44,6 +55,7 @@ export function cameraStop(index,aspect=16/9){
   // presentation screens; preserve the authored close-up distances.
   const ensemble=['arrival','world','room-map','time','shared-responsibility','beyond-chat','departure'].includes(stop.id);
   if(!portrait&&ensemble)position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
+  if(!portrait&&[5,6,7,11,12,15,16].includes(index))position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
   // Keep the physical subject in the open area between the reading panels.
   const director=new THREE.PerspectiveCamera(fov,aspect,.06,150);
   director.position.copy(position);director.lookAt(focus);
@@ -55,8 +67,10 @@ export function cameraStop(index,aspect=16/9){
   return {...stop,position,target,focus};
 }
 
-export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect){
+export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect,phonePose){
   const destination=cameraStop(toIndex,aspect);
+  const fromPhone=fromPosition.y < -8,toPhone=isPhoneStop(toIndex);
+  if(fromPhone!==toPhone&&phonePose)return phoneJourney(fromPosition,fromTarget,fromIndex,toIndex,destination,phonePose,fromPhone);
   const adjacent=fromIndex>=0&&Math.abs(toIndex-fromIndex)===1;
   let via=[];
   if(aspect>=1&&adjacent){
@@ -65,7 +79,7 @@ export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect){
   const distance=fromPosition.distanceTo(destination.position);
   // Direct map jumps travel above the furniture; adjacent stages use the
   // authored walk. Back navigation traverses the same authored waypoints.
-  if(!adjacent&&distance>2){
+  if(!adjacent&&distance>2&&!toPhone){
     const middle=fromPosition.clone().lerp(destination.position,.5);
     middle.y=Math.max(4.8,fromPosition.y,destination.position.y)+.45;
     via=[middle.toArray()];
@@ -80,6 +94,30 @@ export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect){
       const p=THREE.MathUtils.clamp(progress,0,1),e=p*p*p*(p*(p*6-15)+10);
       curve.getPointAt(e,position);lookAt.lerpVectors(fromTarget,destination.target,e);
       return {position,target:lookAt};
+    }
+  };
+}
+
+function phoneJourney(fromPosition,fromTarget,fromIndex,toIndex,destination,phonePose,leaving){
+  const center=phonePose.center.clone(),normal=phonePose.normal.clone();
+  const shoulder=v([-.55,2.6,-1.9]),aligned=center.clone().addScaledVector(normal,.24),screen=center.clone().addScaledVector(normal,.045);
+  const interiorGate=leaving?fromPosition.clone().lerp(fromTarget,.62):destination.position.clone().lerp(destination.target,.58);
+  const outsidePoints=leaving?[screen,aligned,shoulder,destination.position.clone()]:[fromPosition.clone(),shoulder,aligned,screen];
+  const curve=new THREE.CatmullRomCurve3(outsidePoints,false,'centripetal');
+  const smooth=x=>{x=THREE.MathUtils.clamp(x,0,1);return x*x*x*(x*(x*6-15)+10);};
+  const band=(a,b,p)=>smooth((p-a)/(b-a));
+  const position=new THREE.Vector3(),target=new THREE.Vector3();
+  return {duration:leaving?4600:5000,length:curve.getLength(),destination,elapsed:0,fromIndex,toIndex,portal:true,
+    sample(progress){
+      const p=THREE.MathUtils.clamp(progress,0,1),first=p<.5,q=smooth(first?p/.5:(p-.5)/.5);
+      if(leaving){
+        if(first){position.lerpVectors(fromPosition,interiorGate,q);target.copy(fromTarget);}
+        else {curve.getPointAt(q,position);target.lerpVectors(center,destination.target,smooth(q));}
+      }else{
+        if(first){curve.getPointAt(q,position);target.lerpVectors(fromTarget,center,Math.min(1,q*1.8));}
+        else {position.lerpVectors(interiorGate,destination.position,q);target.copy(destination.target);}
+      }
+      return {position,target,cover:band(.40,.475,p)*(1-band(.535,.65,p)),portal:true};
     }
   };
 }

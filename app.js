@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=19a6969abf';
-import {formatInlineBidi} from './bidi.js?v=19a6969abf';
+import {createWorld} from './world.js?v=69bd803d1d';
+import {formatInlineBidi} from './bidi.js?v=69bd803d1d';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
@@ -34,4 +34,4 @@ addEventListener('keydown',e=>{if(dialog.open||e.defaultPrevented||e.target.clos
 addEventListener('hashchange',()=>go((parseInt(location.hash.slice(1))||1)-1));
 addEventListener('keydown',e=>{if(!dialog.open&&e.key.toLowerCase()==='g'&&!zoom.hidden)zoom.click();});
 const requested=(parseInt(location.hash.slice(1))||1)-1;go(requested,true);
-try{await document.fonts.load('500 30px Assistant');world=await createWorld($('#world'),chapters);go(requested,true);$('#loading').classList.add('done');$('#loading').setAttribute('aria-hidden','true');window.CONVERSATION_READY=true;window.getConversationState=()=>world.getState();}catch(error){console.error(error);$('#loading-status').textContent='המרחב לא נטען. אפשר לפתוח את גרסת הקריאה מהכפתור למטה.';$('#loading').style.pointerEvents='none';$('#loading').style.zIndex='3';$('#reading').style.display='block';}
+try{await document.fonts.load('500 30px Assistant');world=await createWorld($('#world'),chapters);world.setMotion(still);go(index,true);$('#loading').classList.add('done');$('#loading').setAttribute('aria-hidden','true');window.CONVERSATION_READY=true;window.getConversationState=()=>world.getState();}catch(error){console.error(error);$('#loading-status').textContent='המרחב לא נטען. אפשר לפתוח את גרסת הקריאה מהכפתור למטה.';$('#loading').style.pointerEvents='none';$('#loading').style.zIndex='3';$('#reading').style.display='block';}

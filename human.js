@@ -64,7 +64,7 @@ export async function createHuman(therapist=false){
   const xAxis=new THREE.Vector3(1,0,0),yAxis=new THREE.Vector3(0,1,0),q=new THREE.Quaternion();
   const typingDots=[];for(let i=0;i<3;i++){const dot=new THREE.Mesh(new THREE.CircleGeometry(.005,16),new THREE.MeshBasicMaterial({color:0x225c62}));dot.position.set(-.015+i*.015,-.105,.012);phone.add(dot);typingDots.push(dot);}
   let activity=0;
-  return {group,bones,get activity(){return activity;},update(t,still,typing=false){if(still)return;activity+=(Number(typing)-activity)*.07;
+  return {group,bones,phone,screen,get activity(){return activity;},update(t,still,typing=false){if(still)return;activity+=(Number(typing)-activity)*.07;
    bones.Spine.quaternion.copy(baseSpine).multiply(q.setFromAxisAngle(xAxis,Math.sin(t*.9)*.006));
    bones.Head.quaternion.copy(baseHead).multiply(q.setFromAxisAngle(yAxis,Math.sin(t*.33)*.018*(1-activity*.65)));
    for(const side of ['Left','Right']){const tap=Math.pow(Math.max(0,Math.sin(t*7+(side==='Left'?0:Math.PI))),3)*activity;
