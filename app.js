@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=15fb02f43d';
-import {formatInlineBidi} from './bidi.js?v=15fb02f43d';
+import {createWorld} from './world.js?v=882a5dc64d';
+import {formatInlineBidi} from './bidi.js?v=882a5dc64d';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
@@ -9,13 +9,13 @@ const paperHome=document.createComment('Desktop paper-card position');
 $('#paper-card').before(paperHome);
 let mobileExpanded=false,mobileScrollSuppressedUntil=0,mobilePointer=null,mobileMeasureFrame=0;
 const mobileOptions=document.createElement('button');
-mobileOptions.id='mobile-options';mobileOptions.textContent='אפשרויות';mobileOptions.setAttribute('aria-haspopup','dialog');
+mobileOptions.id='mobile-options';mobileOptions.textContent='⋯';mobileOptions.setAttribute('aria-label','אפשרויות המסע');mobileOptions.setAttribute('aria-haspopup','dialog');
 $('.tools').append(mobileOptions);
 function setMobileExpanded(expanded){
  mobileExpanded=expanded;document.body.classList.toggle('mobile-sheet-expanded',expanded);
  if(expanded)stopTour();world?.setPaused(expanded||dialog.open);
  $('#mobile-sheet-toggle').setAttribute('aria-expanded',String(expanded));
- $('#mobile-sheet-action').textContent=expanded?'צמצום':'פתיחה';
+ $('#mobile-sheet-action').textContent=expanded?'חזרה לחדר':'פתיחה';$('#mobile-sheet-content').inert=mobilePortrait.matches&&!expanded;
 }
 function measureMobileScene(){
  cancelAnimationFrame(mobileMeasureFrame);mobileMeasureFrame=requestAnimationFrame(()=>{
@@ -30,7 +30,7 @@ function syncMobileLayout(){
  if(mobile)$('#mobile-paper-slot').append($('#paper-card'));else paperHome.after($('#paper-card'));
  $('#previous').innerHTML=mobile?'<span aria-hidden="true">→</span><span>הקודם</span>':'→';
  $('#next').innerHTML=mobile?'<span>הבא</span><span aria-hidden="true">←</span>':'←';
- if(!mobile)setMobileExpanded(false);
+ if(!mobile)setMobileExpanded(false);$('#mobile-sheet-content').inert=mobilePortrait.matches&&!mobileExpanded;
  measureMobileScene();
 }
 mobilePortrait.addEventListener('change',syncMobileLayout);mobileLandscape.addEventListener('change',syncMobileLayout);
@@ -66,7 +66,7 @@ document.addEventListener('click',activatePanel);document.addEventListener('keyd
 $('#paper-card').onclick=()=>{const p=chapters[index].paper;if(!p)return;stopTour();open('<p>'+escape(p.step)+'</p><h2>'+escape(p.title)+'</h2><p dir="auto">'+escape(p.full||p.title)+'</p><p>'+escape(p.authors||'')+'</p><p>'+escape(p.status)+'</p><p>'+escape(p.description||'')+'</p>'+(p.url?'<p><a href="'+p.url+'" target="_blank" rel="noopener">לקריאת המאמר ↗</a></p>':''));};
 dialog.querySelector('.close').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
 dialog.addEventListener('close',()=>world?.setPaused(mobileExpanded||dialog.open));
-function draw(){const c=chapters[index];document.body.classList.toggle('needs-chapter',c.slide===12);$('#mobile-notes').innerHTML=c.labels.map((l,i)=>'<div class="world-label '+(l.tone||'')+'" data-label="'+i+'"'+(l.html.includes('<button')?'':' tabindex="0" role="button" aria-label="הגדלת תוכן השקף"')+'>'+l.html+'</div>').join('')+`<p class="mobile-qualification">${c.caption||''}</p>`;$('#mobile-notes').scrollTop=0;$('#chapter-title').textContent=c.title;$('#chapter-purpose').textContent=c.purpose||'';$('#chapter-section').textContent=c.section;$('#chapter-heading').classList.toggle('opening',false);$('#chapter-short').textContent=c.short;$('#counter').textContent=`שקף ${c.slide} מתוך ${chapters.length}`;$('#caption').textContent=c.caption||'';$('#progress span').style.width=(index+1)/chapters.length*100+'%';$('#previous').disabled=index===0;$('#next').disabled=index===chapters.length-1;$('#route').querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-current',String(Number(b.dataset.group)===c.group)));document.title=c.title+' — בתוך השיחה';const p=c.paper;$('#paper-card').hidden=!p;document.body.classList.toggle('has-paper',!!p);if(p){$('#paper-step').textContent=p.step;$('#paper-title').textContent=p.title;$('#paper-status').textContent=p.status;}formatInlineBidi($('#paper-card'));}
+function draw(){const c=chapters[index],paperSlot=$('#mobile-paper-slot');$('#mobile-sheet-content').append(paperSlot);document.body.classList.toggle('needs-chapter',c.slide===12);$('#mobile-notes').innerHTML='<p class="mobile-purpose">'+escape(c.purpose||'')+'</p>'+c.labels.map((l,i)=>'<div class="world-label '+(l.tone||'')+'" data-label="'+i+'"'+(l.html.includes('<button')?'':' tabindex="0" role="button" aria-label="הגדלת תוכן השקף"')+'>'+l.html+'</div>').join('')+`<p class="mobile-qualification">${c.caption||''}</p>`;$('#mobile-notes').append(paperSlot);$('#mobile-notes').scrollTop=0;$('#chapter-title').textContent=c.title;$('#chapter-purpose').textContent=c.purpose||'';$('#chapter-section').textContent=c.section;$('#chapter-heading').classList.toggle('opening',false);$('#chapter-short').textContent=c.short;$('#counter').textContent=`שקף ${c.slide} מתוך ${chapters.length}`;$('#caption').textContent=c.caption||'';$('#progress span').style.width=(index+1)/chapters.length*100+'%';$('#previous').disabled=index===0;$('#next').disabled=index===chapters.length-1;$('#route').querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-current',String(Number(b.dataset.group)===c.group)));document.title=c.title+' — בתוך השיחה';const p=c.paper;$('#paper-card').hidden=!p;document.body.classList.toggle('has-paper',!!p);if(p){$('#paper-step').textContent=p.step;$('#paper-title').textContent=p.title;$('#paper-status').textContent=p.status;}formatInlineBidi($('#paper-card'));}
 function go(i,instant=false){if(document.activeElement?.closest('#world,#mobile-notes'))document.activeElement.blur();index=Math.max(0,Math.min(chapters.length-1,i));explore=false;$('#explore').setAttribute('aria-pressed','false');$('#explore-hint').hidden=true;setMobileExpanded(false);draw();measureMobileScene();for(const root of [$('#mobile-notes'),$('#chapter-heading'),$('#caption')])formatInlineBidi(root);zoom.hidden=false;world?.setChapter(index,instant);history.replaceState(null,'','#'+(index+1));}
 $('#next').onclick=()=>{stopTour();go(index+1);};$('#previous').onclick=()=>{stopTour();go(index-1);};
 $('#overview').onclick=()=>{open('<h2>המסע לפי המצגת המקורית</h2><div class="map-grid">'+chapters.map((c,i)=>`<button class="map-stop" data-go="${i}" aria-current="${i===index}"><small>שקף ${c.slide} · ${c.section}</small><span>${c.short}</span></button>`).join('')+'</div>');dialog.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{stopTour();dialog.close();go(Number(b.dataset.go));});};
