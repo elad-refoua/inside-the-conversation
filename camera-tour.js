@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {PHONE_STOPS} from './phone-space.js?v=69bd803d1d';
+import {PHONE_STOPS} from './phone-space.js?v=b171ca8a44';
 
 // An authored walk through this room, in the existing PowerPoint order.
 // Coordinates refer to the actual person, phone, table, AI and therapist.
@@ -30,9 +30,9 @@ export const TOUR_STOPS = [
 // One continuous conversation inside the phone, then back to the person.
 for(let i=0;i<3;i++)Object.assign(TOUR_STOPS[i+5],PHONE_STOPS[i],{activity:'type',via:[]});
 // The therapist uses the same physical research display for these two stops.
-Object.assign(TOUR_STOPS[12],{eye:[2.8,2.4,2.25],focus:[.5,2.05,0]});
-Object.assign(TOUR_STOPS[15],{eye:[5,2.55,2.1],focus:[3.3,1.75,-3.1]});
-Object.assign(TOUR_STOPS[16],{eye:[5.12,2.58,2.18],focus:[3.3,1.75,-3.1],via:[]});
+Object.assign(TOUR_STOPS[12],{eye:[1.0244,2.70,-.9639],focus:[-5.36,3.4,-4.575],frame:.665,via:[[2.65,2.6,2.3]]});
+Object.assign(TOUR_STOPS[15],{eye:[1.293,1.6,2.355],focus:[6.7,3.3,-3.81],frame:.70,via:[[3.6,2.3,-.5],[2.7,1.95,1.35]]});
+Object.assign(TOUR_STOPS[16],{eye:[1.293,1.6,2.355],focus:[6.7,3.3,-3.81],frame:.70,via:[]});
 export const isPhoneStop=index=>index>=5&&index<=7;
 
 const v = a => new THREE.Vector3(...a);

@@ -55,7 +55,7 @@ export function createRoomExhibits(scene){
     mesh.position.z=z-depth/2;parent.add(mesh);
   }
   // All component transforms are baked once. Only materials change later;
-  // each room display adds five draw calls; phone displays add four.
+  // each room display adds five draw calls; phone displays and TVs add four.
   function consolidate(group){
     const buckets=new Map();
     for(const mesh of [...group.children]){
@@ -71,6 +71,13 @@ export function createRoomExhibits(scene){
   }
   function emission(record,t=0,still=true){
     const active=activeIds.has(record.id);
+    if(record.kind==='tv'){
+      record.trim.emissiveIntensity=0;
+      record.edge.color.set(active?'#bdd6d3':'#9b6551');
+      record.edge.emissive.copy(record.edge.color);
+      record.edge.emissiveIntensity=active?.10:.12;
+      record.active=active;return;
+    }
     const breath=active&&!still?Math.sin(t*.7)*.012:0;
     record.trim.emissiveIntensity=active?.035:0;
     if(record.edge)record.edge.emissiveIntensity=active?.29+breath:.045;
@@ -79,17 +86,58 @@ export function createRoomExhibits(scene){
   function appearance(record){
     if(!record.face)return;
     const active=activeIds.has(record.id);
+    if(record.kind==='tv'){
+      record.face.color.set(active?'#102229':'#080e11');
+      record.face.roughness=active?.58:.29;
+      record.face.opacity=1;record.face.transparent=false;record.face.depthWrite=true;
+      return;
+    }
     record.face.color.set(active?'#101c21':'#477d83');
     record.face.opacity=active?.96:.12;
     record.face.depthWrite=active;
   }
 
+  function television(id,group,width,height,floorY){
+    const shell=material('#171d20',.68,.16);
+    const trim=material('#292e31',.76,.19);
+    const face=material('#080e11',.29,.12);
+    const edge=material('#9b6551',.48,.08);
+    // Rounded 2D silhouettes preserve the corner radius on a thin enclosure;
+    // a rounded box alone limits that radius to half the enclosure's depth.
+    function slab(w,h,d,r,m,z){
+      const s=new THREE.Shape(),x=-w/2,y=-h/2;
+      r=Math.min(r,w/2,h/2);
+      s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);
+      s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);
+      s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);s.closePath();
+      const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:false,curveSegments:8}),m);
+      mesh.position.z=z-d/2;group.add(mesh);
+    }
+    // width/height remain the exact reading area supplied by the caller.
+    // The narrow charcoal surround adds only 0.03 units on each front edge.
+    slab(width+.088,height+.088,.060,.066,shell,-.058);
+    slab(width+.060,height+.060,.018,.052,trim,-.016);
+    slab(width+.001,height+.001,.006,.022,face,-.008);
+    // A recessed mounting plate supports the set from the wall. No floor
+    // furniture or exhibition-frame materials are added for this screen kind.
+    box(group,shell,[width*.28,height*.35,.036],new THREE.Vector3(0,0,-.103),.016);
+    const indicator=new THREE.Mesh(new THREE.SphereGeometry(.004,12,8),edge);
+    indicator.position.set(0,-height/2-.018,-.007);indicator.scale.z=.35;group.add(indicator);
+    consolidate(group);root.add(group);
+    const record={id,type:'screen',kind:'tv',group,position:group.position,quaternion:group.quaternion,width,height,floorY,trim,edge,face,active:false};
+    group.userData.readingPlane={width,height,localZ:0};
+    group.userData.support={floorY,floating:false,wallMounted:true,rearDepth:.121};
+    exhibits.set(id,record);appearance(record);emission(record);return record;
+  }
+
   function addScreen(id,{position,quaternion,width,height,floorY,accent='#83c9c4',kind='room'}){
     checkId(id);positive(width,'Screen width');positive(height,'Screen height');
-    if(kind!=='room'&&kind!=='phone')throw new TypeError('Screen kind must be room or phone.');
+    if(kind!=='room'&&kind!=='phone'&&kind!=='tv')throw new TypeError('Screen kind must be room, phone or tv.');
     floorY??=kind==='phone'?-18:-.03;
     if(!Number.isFinite(floorY))throw new TypeError('Screen floorY must be finite.');
     const group=frame(position,quaternion);group.name='exhibit-screen-'+id;
+    if(kind==='tv')return television(id,group,width,height,floorY);
     const q=group.quaternion,inverse=q.clone().invert(),normal=new THREE.Vector3(0,0,1).applyQuaternion(q);
     const local=(p)=>p.clone().sub(position).applyQuaternion(inverse);
     const world=(p)=>p.clone().applyQuaternion(q).add(position);

@@ -6,6 +6,30 @@
   border:0;
 }
 #world .mounted-evidence { backface-visibility:hidden; }
+/* A 16:9 television uses the same source content in a wider reading layout. */
+#world .tv-evidence > .exhibit {
+ width:960px; height:540px; box-sizing:border-box; padding:24px 32px 18px;
+ border-radius:3px; background:#f0f3ef;
+}
+#world .tv-evidence .exhibit-heading h2 { font-size:32px; line-height:1.13; margin-bottom:6px; }
+#world .tv-evidence .exhibit-heading p { font-size:20px; line-height:1.3; margin-bottom:12px; }
+#world .tv-evidence .bar-chart { --label-width:350px; --value-width:85px; }
+#world .tv-evidence .chart-row { min-height:43px; gap:20px; }
+#world .tv-evidence .row-name { font-size:25px; line-height:1.12; }
+#world .tv-evidence .row-value { font-size:26px; }
+#world .tv-evidence .compact .chart-row { min-height:32px; }
+#world .tv-evidence .bar-track { height:12px; }
+#world .tv-evidence .chart-axis { gap:20px; margin-top:6px; }
+#world .tv-evidence .chart-axis > div { font-size:17px; }
+#world .tv-evidence .exhibit p.chart-foot { margin-top:8px; padding-top:9px; font-size:18px; }
+#world .tv-evidence .legend-inline { font-size:19px; }
+#world .tv-evidence .inline-metric { margin:4px 0 14px; padding-bottom:6px; }
+#world .tv-evidence .metric { padding:7px 0; }
+#world .tv-evidence .metric > strong { font-size:70px; }
+#world .tv-evidence .metric > span { font-size:25px; }
+#world .tv-evidence .chart-subtitle { font-size:24px; margin-bottom:5px; }
+#world .tv-evidence .training-strip { margin-top:10px; padding:8px 16px; font-size:19px; }
+#world .tv-evidence .training-strip bdi { display:inline; font-size:30px; margin-inline-end:9px; }
 .phone-portal-cover {
   position:absolute; inset:0; z-index:4; pointer-events:none; opacity:0;
   background:#0b252c;
@@ -18,4 +42,34 @@ body[data-realm="phone"] .brand-mark { color:#a4e4da; }
 body[data-realm="phone"] #chapter-title { text-shadow:0 3px 20px #020f16; }
 @media (orientation:portrait) {
   .phone-portal-cover { display:none; }
+}
+/* Compact panels use the existing scrollable reading surface rather than
+   shrinking a television's full chart to single-digit pixel type. */
+@media (max-width:900px) and (orientation:landscape) {
+ body.tv-chapter #world .world-label { display:none!important; }
+ body.tv-chapter #caption { display:none; }
+ body.tv-chapter #mobile-notes {
+  display:block; position:fixed; z-index:5; top:max(242px,42vh); bottom:100px;
+  left:14px; right:14px; max-height:none; overflow:auto; padding:0;
+  border:1px solid #8ca5a7; border-radius:9px; background:#f0f3ef;
+  scrollbar-width:thin;
+ }
+ body.tv-chapter #mobile-notes .world-label { width:100%!important; margin:0; }
+ body.tv-chapter #mobile-notes .exhibit { border:0; border-radius:0; padding:18px 22px; }
+ body.tv-chapter #mobile-notes .exhibit h2 { font-size:25px; }
+ body.tv-chapter #mobile-notes .exhibit-heading p { font-size:17px; margin-bottom:14px; }
+ body.tv-chapter #mobile-notes .chart-row,
+ body.tv-chapter #mobile-notes .chart-axis { grid-template-columns:43% 1fr 58px; gap:12px; }
+ body.tv-chapter #mobile-notes .chart-row { min-height:37px; }
+ body.tv-chapter #mobile-notes .row-name { font-size:20px; }
+ body.tv-chapter #mobile-notes .row-value { font-size:21px; }
+ body.tv-chapter #mobile-notes .chart-axis > div { font-size:15px; }
+ body.tv-chapter #mobile-notes .bar-track { height:11px; }
+ body.tv-chapter #mobile-notes .inline-metric .metric:only-child { grid-template-columns:110px 1fr; }
+ body.tv-chapter #mobile-notes .metric > strong { font-size:48px; }
+ body.tv-chapter #mobile-notes .metric > span { font-size:20px; }
+ body.tv-chapter #mobile-notes .chart-foot,
+ body.tv-chapter #mobile-notes .legend-inline { font-size:16px; }
+ body.tv-chapter #mobile-notes .legend-inline { flex-wrap:wrap; }
+ body.tv-chapter #mobile-notes .mobile-qualification { color:#18313b; padding:16px 22px; }
 }

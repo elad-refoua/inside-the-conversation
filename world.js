@@ -7,14 +7,14 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=69bd803d1d';
-import {formatInlineBidi} from './bidi.js?v=69bd803d1d';
-import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=69bd803d1d';
-import {createPhoneSpace} from './phone-space.js?v=69bd803d1d';
-import {createRoomExhibits} from './room-exhibits.js?v=69bd803d1d';
-import {finishRoom} from './room-finish.js?v=69bd803d1d';
-import {createAIFace} from './ai-face.js?v=69bd803d1d';
-import {createNeedsScenes} from './needs-scenes.js?v=69bd803d1d';
+import {createHuman} from './human.js?v=b171ca8a44';
+import {formatInlineBidi} from './bidi.js?v=b171ca8a44';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=b171ca8a44';
+import {createPhoneSpace} from './phone-space.js?v=b171ca8a44';
+import {createRoomExhibits} from './room-exhibits.js?v=b171ca8a44';
+import {finishRoom} from './room-finish.js?v=b171ca8a44';
+import {createAIFace} from './ai-face.js?v=b171ca8a44';
+import {createNeedsScenes} from './needs-scenes.js?v=b171ca8a44';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -119,8 +119,8 @@ export async function createWorld(container,chapters){
  const cssWorldScale=100,cssCamera=camera.clone();labelScene.scale.setScalar(cssWorldScale);
  for(let ci=0;ci<chapters.length;ci++){const group=new THREE.Group();labelScene.add(group);const chapter=chapters[ci];const labels=[];for(const spec of chapter.labels){const el=document.createElement('div');el.className='world-label '+(spec.tone||'');el.dir='rtl';el.dataset.chapter=ci;el.innerHTML=spec.html;formatInlineBidi(el);if(spec.width)el.style.width=spec.width+'px';const object=new CSS3DObject(el);el.style.pointerEvents='auto';el.dataset.label=labels.length;if(!el.querySelector('button')){el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','הגדלה: '+(el.querySelector('h2')?.textContent||chapter.title));}el.title='לחצו להגדלה';object.position.set(...spec.pos);object.scale.setScalar(spec.scale||.004);const aim=V(...chapter.camera);object.lookAt(aim);group.add(object);labels.push({el,object,spec});}group.visible=false;labelSets.push({group,labels});}
  const fixedPlacements=new Map(),chapterExhibits=new Map();
- function measureLabel(label){
-  const el=label.el.cloneNode(true),width=label.spec.width||520;
+ function measureLabel(label,width=label.spec.width||520){
+  const el=label.el.cloneNode(true);
   el.style.cssText=`position:fixed;left:-20000px;top:0;width:${width}px;visibility:hidden;transform:none;display:block`;
   document.body.appendChild(el);const slot=el.querySelector('.needs-window');
   const result={width,height:el.offsetHeight||300,slot:slot?{x:slot.offsetLeft,w:slot.offsetWidth,y:slot.offsetTop,h:slot.offsetHeight}:null};el.remove();return result;
@@ -135,8 +135,8 @@ export async function createWorld(container,chapters){
  function prepareExhibits(){
   // Dimensions and addresses are authored at one design viewport. Resizing
   // changes camera framing, never the furniture's location or size.
-  for(const index of [5,6,7,12,15,16]){
-   const source=index===16?15:index,plane=designPlane(source),ids=[];
+  for(const index of [5,6,7]){
+   const plane=designPlane(index),ids=[];
    for(const [i,label] of labelSets[index].labels.entries()){
     if(i>0&&!isPhoneStop(index))continue;
     const id=index===16?'room-15-0':`${isPhoneStop(index)?'phone':'room'}-${index}-${i}`;
@@ -150,6 +150,28 @@ export async function createWorld(container,chapters){
     label.el.classList.add('mounted-evidence');
    }
    chapterExhibits.set(index,ids);
+  }
+  // Two actual televisions belong to the room's architecture, behind the
+  // corresponding chair. Their reading planes do not follow the camera.
+  const televisions=[
+   {id:'tv-patient',position:V(-5.36,2.95,-4.575),yaw:.864,slides:[12],backingHeight:3.12},
+   {id:'tv-therapist',position:V(6.70,2.85,-3.81),yaw:-.72,slides:[15,16],backingHeight:4.8}
+  ];
+  for(const tv of televisions){
+   const width=4.8,height=2.7,quaternion=new THREE.Quaternion().setFromAxisAngle(V(0,1,0),tv.yaw);
+   exhibits.addScreen(tv.id,{position:tv.position,quaternion,width,height,kind:'tv'});
+   const joinery=new THREE.Group();joinery.name=tv.id+'-joinery';joinery.position.copy(tv.position);joinery.quaternion.copy(quaternion);roomRoot.add(joinery);
+   const panelY=tv.id==='tv-therapist'?2.4-tv.position.y:0;
+   const backing=wood.clone();backing.color.set('#5d4734');
+   box(5.12,tv.backingHeight,.10,backing,[0,panelY,-.20],joinery,.025);
+   const slatMat=wood.clone();slatMat.color.set('#937357');
+   const fins=new THREE.InstancedMesh(new THREE.BoxGeometry(.024,tv.backingHeight-.08,.024),slatMat,80);
+   const dummy=new THREE.Object3D();for(let i=0;i<80;i++){dummy.position.set(-2.5+i*5/79,panelY,-.139);dummy.updateMatrix();fins.setMatrixAt(i,dummy.matrix);}joinery.add(fins);
+   for(const index of tv.slides){
+    const label=labelSets[index].labels[0];label.el.classList.add('mounted-evidence','tv-evidence');label.el.style.width='960px';label.el.style.height='540px';
+    fixedPlacements.set(index,new Map([[0,{position:tv.position.clone(),quaternion:quaternion.clone(),scale:width/960,exhibit:tv.id}]]));
+    chapterExhibits.set(index,[tv.id]);
+   }
   }
   const index=11,plane=designPlane(index),placements=new Map();
   for(const [i,label] of labelSets[index].labels.entries()){
@@ -237,10 +259,11 @@ export async function createWorld(container,chapters){
   const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(shot.position);
   if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.copy(shot.target);camera.lookAt(currentTarget);transition=null;}
   else {human.group.updateMatrixWorld(true);const phonePose={center:human.screen.getWorldPosition(V(0,0,0)),normal:V(0,0,1).applyQuaternion(human.screen.getWorldQuaternion(new THREE.Quaternion()))};transition=cameraJourney(fromPos,fromTarget,interrupted?-1:previous,index,innerWidth/innerHeight,phonePose);transition.lastTime=performance.now();}
-  current=index;therapistLight.intensity=ch.therapist?32:13;lamp.intensity=shot.id==='night'?23:16;
+  current=index;document.body.classList.toggle('tv-chapter',[12,15,16].includes(index));therapistLight.intensity=ch.therapist?32:13;lamp.intensity=shot.id==='night'?23:16;
   controls.minDistance=isPhoneStop(index)?3:2;controls.maxDistance=isPhoneStop(index)?8.5:26;
   controls.enablePan=!isPhoneStop(index);
-  controls.minPolarAngle=isPhoneStop(index)?1.05:0;controls.maxPolarAngle=Math.PI*.49;
+  controls.minPolarAngle=isPhoneStop(index)?1.05:0;
+  controls.maxPolarAngle=[12,15,16].includes(index)?Math.max(Math.PI*.49,new THREE.Spherical().setFromVector3(shot.position.clone().sub(shot.target)).phi+.08):Math.PI*.49;
   controls.minAzimuthAngle=isPhoneStop(index)?-.6:-Infinity;controls.maxAzimuthAngle=isPhoneStop(index)?.6:Infinity;
   aiFace.setEnabled(index===10,immediate||still);
   journeyPlace.textContent=transitionCaption(previous,index);journeyReason.textContent='';journeyCue.hidden=!transition||!journeyPlace.textContent;
@@ -267,13 +290,14 @@ export async function createWorld(container,chapters){
   }else controls.update();}
   const writing=TOUR_STOPS[current]?.activity==='type',atStop=tick-settledAt;human.update(t,!active,chapters[current]?.typing&&(!!transition||(writing&&(atStop<6||(atStop>12&&atStop<16)))));therapist.update(t,!active);if(active){patientHalo.material.opacity=.34+Math.sin(t*1.4)*.12;aiHalo.material.opacity=.35+Math.sin(t*1.4+Math.PI)*.13;steps.forEach((step,i)=>step.material.opacity=.28+.25*(1+Math.sin(t*1.7-i*.9))/2);bridge.material.opacity=.45+Math.sin(t*.8)*.09;ai.position.y=1.75+Math.sin(t*.65)*.035;aiCore.rotation.y=t*.08;dots.rotation.y=t*.04;rings.forEach((r,i)=>{r.rotation.z=t*(i%2?-.04:.04)+i*.21;});pulses.forEach((p,i)=>p.position.copy(flows[i%3].getPoint((t*.10+i/10)%1)));}
   const inPhone=camera.position.y < -8;roomRoot.visible=!inPhone;phoneSpace.setEnabled(inPhone);phoneSpace.update(t,!active);exhibits.update(t,!active);document.body.dataset.realm=inPhone?'phone':'room';
-  for(const group of scene.getObjectByName('room-exhibits').children)group.visible=group.name.includes('phone-')===inPhone;
+  const needsVisible=!inPhone&&current===11&&innerWidth>=innerHeight&&(!transition||transition.elapsed/transition.duration>.92);
+  for(const group of scene.getObjectByName('room-exhibits').children)group.visible=group.name.includes('needs-')?needsVisible:group.name.includes('phone-')===inPhone;
   const mounted=fixedPlacements.get(current),primary=mounted?.values().next().value;
   let reveal=transition?0:1;
   if(transition&&primary){const facing=V(0,0,1).applyQuaternion(primary.quaternion).dot(camera.position.clone().sub(primary.position).normalize()),distance=camera.position.distanceTo(primary.position);const p=transition.elapsed/transition.duration;reveal=clamp((9-distance)/3,0,1)*clamp((facing-.55)/.3,0,1);if(transition.portal)reveal*=clamp((p-.76)/.18,0,1);}
   else if(transition)reveal=transition.elapsed/transition.duration>.95?1:0;
   for(const l of labelSets[current].labels){l.el.style.visibility=reveal>.015?'visible':'hidden';l.el.style.opacity=String(reveal);l.el.style.pointerEvents=reveal>.98?'auto':'none';l.el.setAttribute('aria-hidden',reveal>.98?'false':'true');}
-  needsScenes.setEnabled(!inPhone&&innerWidth>=innerHeight);needsScenes.update(t,!active);
+  needsScenes.setEnabled(needsVisible);needsScenes.update(t,!active);
   roomFinish.update(t);aiFace.update(dt,!active);renderer.info.reset();composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
