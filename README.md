@@ -10,4 +10,4 @@ The male patient, female therapist and conversation are illustrative. Aggregate 
 
 Human models and textures: [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox), MIT license retained in assets/humans/LICENSE.md. Textures are delivered as lossless WebP with unchanged pixel dimensions. Three.js 0.180.0: MIT, retained in vendor/three/LICENSE. Assistant font: SIL Open Font License, retained in vendor/ASSISTANT-OFL.txt. Night environment: generated image.
 
-All runtime dependencies are included locally. Best viewed on a landscape desktop at 100% browser zoom. Portrait screens provide a scrollable content view.
+All runtime dependencies are included locally. Desktop and phone layouts share the same address. Phones show a scene with touch navigation and an expandable findings panel; landscape phones use two columns. Mobile rendering adjusts pixel density and avoids postprocessing.

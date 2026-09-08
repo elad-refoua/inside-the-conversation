@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {PHONE_STOPS} from './phone-space.js?v=b171ca8a44';
+import {PHONE_STOPS} from './phone-space.js?v=15fb02f43d';
 
 // An authored walk through this room, in the existing PowerPoint order.
 // Coordinates refer to the actual person, phone, table, AI and therapist.
@@ -35,6 +35,34 @@ Object.assign(TOUR_STOPS[15],{eye:[1.293,1.6,2.355],focus:[6.7,3.3,-3.81],frame:
 Object.assign(TOUR_STOPS[16],{eye:[1.293,1.6,2.355],focus:[6.7,3.3,-3.81],frame:.70,via:[]});
 export const isPhoneStop=index=>index>=5&&index<=7;
 
+// On a phone the room has its own upper viewport and the evidence lives below.
+// These are centered compositions for that viewport, not smaller desktop shots.
+// TV stops retain the person in front of their display; the chart is read in the
+// mobile evidence drawer. The separate phone set and portal route are unchanged.
+export const MOBILE_STOPS = [
+  {eye:[.4,2.35,5.25],focus:[.35,1.15,-.8],fov:50,fit:1.12},
+  {eye:[1.1,3.4,7],focus:[.35,1.15,-1],fov:52,fit:1.16},
+  {eye:[-.15,2.25,4.3],focus:[-.65,1.2,.05],fov:50,fit:1.1},
+  {eye:[3.35,4.9,5.4],focus:[.55,.85,-1.2],fov:52,fit:1.18},
+  {eye:[.2,1.85,2.9],focus:[-1.5,1.2,.25],fov:48,fit:1,via:[[1.25,3,4.25]]},
+  {eye:[-7,-14.7,7.9],focus:[-7,-15.05,-.65],fov:52,fit:1.04},
+  {eye:[0,-14.7,7.9],focus:[0,-15.05,-.65],fov:52,fit:1.04},
+  {eye:[7,-14.7,7.9],focus:[7,-15.05,-.65],fov:52,fit:1.04},
+  {eye:[-1.9,1.65,2.7],focus:[-1.64,1.26,.28],fov:48,fit:1},
+  {eye:[.25,3.05,5.25],focus:[.45,1.15,-.8],fov:52,fit:1.1,via:[[-1.05,2.3,3.9]]},
+  {eye:[-1.91,1.9,.67],focus:[.45,1.75,.02],fov:48,fit:1,via:[[-.9,2.5,3.35]]},
+  {eye:[.8,2.7,4.25],focus:[.1,1.15,-.05],fov:52,fit:1.08,via:[[-.2,2.4,2.85]]},
+  {eye:[1,2.5,3.6],focus:[-3.2,1.85,-2.5],fov:52,fit:1.08,via:[[.1,2.9,4.1]]},
+  {eye:[4.6,4.2,5],focus:[.4,1,-1],fov:52,fit:1.15,via:[[3.4,3.5,4.1]]},
+  {eye:[1.4,1.75,1.55],focus:[-1.6,1.28,.15],fov:48,fit:1,via:[[3.5,2.9,3]]},
+  {eye:[.35,2.15,1.4],focus:[4.65,1.75,-3.45],fov:52,fit:1.1,via:[[1.45,2.5,2.7],[2.4,2.3,1.5]]},
+  {eye:[.35,2.15,1.4],focus:[4.65,1.75,-3.45],fov:52,fit:1.1},
+  {eye:[5.7,4.1,6.8],focus:[.55,1,-.95],fov:52,fit:1.16,via:[[4.5,3.1,3.9]]},
+  {eye:[5,2.6,2.7],focus:[1.45,1.2,-1.4],fov:50,fit:1.12,via:[[5.4,3.1,4.25]]},
+  {eye:[3.35,2.85,5.25],focus:[.3,1.2,-.65],fov:50,fit:1.12,via:[[4.4,2.9,3.9]]},
+  {eye:[5.2,5.1,8],focus:[.35,.95,-1],fov:52,fit:1.16}
+].map(stop=>Object.freeze(stop));
+
 const v = a => new THREE.Vector3(...a);
 
 // Only changes of conversational focus need an audience-facing signpost.
@@ -47,34 +75,37 @@ export function transitionCaption(fromIndex,toIndex){
   return ({person:'אל האדם',ai:'אל הבינה',therapist:'אל המטפלת'})[group]||'';
 }
 
-export function cameraStop(index,aspect=16/9){
-  const stop=TOUR_STOPS[index],focus=v(stop.focus),position=v(stop.eye);
-  const portrait=aspect<1,fov=portrait?62:43;
-  if(portrait)position.sub(focus).multiplyScalar(1.7).add(focus);
+export function cameraStop(index,aspect=16/9,mobile=aspect<1){
+  const stop=TOUR_STOPS[index],composition=mobile?MOBILE_STOPS[index]:stop;
+  const focus=v(composition.focus),position=v(composition.eye),fov=mobile?composition.fov:43;
+  // Match the actual upper scene viewport. Only unusually narrow scenes need
+  // extra distance; a portrait device can still have a wide scene viewport.
+  if(mobile)position.sub(focus).multiplyScalar(THREE.MathUtils.clamp(composition.fit/aspect,1,1.55)).add(focus);
   // Fit the entire relationship into compact landscape panels as well as
   // presentation screens; preserve the authored close-up distances.
   const ensemble=['arrival','world','room-map','time','shared-responsibility','beyond-chat','departure'].includes(stop.id);
-  if(!portrait&&ensemble)position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
-  if(!portrait&&[5,6,7,11,12,15,16].includes(index))position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
+  if(!mobile&&ensemble)position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
+  if(!mobile&&[5,6,7,11,12,15,16].includes(index))position.sub(focus).multiplyScalar(Math.max(1,1.6/aspect)).add(focus);
   // Keep the physical subject in the open area between the reading panels.
   const director=new THREE.PerspectiveCamera(fov,aspect,.06,150);
   director.position.copy(position);director.lookAt(focus);
   const right=new THREE.Vector3(1,0,0).applyQuaternion(director.quaternion);
   const up=new THREE.Vector3(0,1,0).applyQuaternion(director.quaternion);
   const halfHeight=position.distanceTo(focus)*Math.tan(THREE.MathUtils.degToRad(fov/2));
-  const frame=portrait?.5:(stop.frame??.415);
-  const target=focus.clone().addScaledVector(right,(1-2*frame)*halfHeight*aspect).addScaledVector(up,-.06*halfHeight);
-  return {...stop,position,target,focus};
+  const frame=mobile?.5:(stop.frame??.415);
+  const target=focus.clone().addScaledVector(right,(1-2*frame)*halfHeight*aspect).addScaledVector(up,(mobile?0:-.06)*halfHeight);
+  return {...stop,position,target,focus,fov};
 }
 
-export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect,phonePose){
-  const destination=cameraStop(toIndex,aspect);
+export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect,phonePose,mobile=aspect<1){
+  const destination=cameraStop(toIndex,aspect,mobile);
   const fromPhone=fromPosition.y < -8,toPhone=isPhoneStop(toIndex);
   if(fromPhone!==toPhone&&phonePose)return phoneJourney(fromPosition,fromTarget,fromIndex,toIndex,destination,phonePose,fromPhone);
   const adjacent=fromIndex>=0&&Math.abs(toIndex-fromIndex)===1;
   let via=[];
-  if(aspect>=1&&adjacent){
-    via=toIndex>fromIndex?(TOUR_STOPS[toIndex].via||[]):[...(TOUR_STOPS[fromIndex].via||[])].reverse();
+  if((mobile||aspect>=1)&&adjacent){
+    const route=mobile?MOBILE_STOPS:TOUR_STOPS;
+    via=toIndex>fromIndex?(route[toIndex].via||[]):[...(route[fromIndex].via||[])].reverse();
   }
   const distance=fromPosition.distanceTo(destination.position);
   // Direct map jumps travel above the furniture; adjacent stages use the
@@ -87,7 +118,7 @@ export function cameraJourney(fromPosition,fromTarget,fromIndex,toIndex,aspect,p
   const points=[fromPosition.clone(),...via.map(v),destination.position.clone()];
   const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
   const length=curve.getLength();
-  const duration=THREE.MathUtils.clamp(1200+length*300,1600,4700);
+  const duration=mobile?THREE.MathUtils.clamp(1100+length*230,1400,3900):THREE.MathUtils.clamp(1200+length*300,1600,4700);
   const lookAt=fromTarget.clone(),position=new THREE.Vector3();
   return {duration,length,destination,elapsed:0,fromIndex,toIndex,
     sample(progress){
