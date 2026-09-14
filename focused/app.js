@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=27099d48a2';
-import {formatInlineBidi} from './bidi.js?v=27099d48a2';
+import {createWorld} from './world.js?v=97b67ca348';
+import {formatInlineBidi} from './bidi.js?v=97b67ca348';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let focusStep=0;let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
@@ -95,7 +95,7 @@ const badge=document.createElement('span');badge.id='focus-badge';badge.textCont
 function setRevealDOM(root,step){root.querySelectorAll('[data-reveal]').forEach(el=>{el.hidden=Number(el.dataset.reveal)!==step;});}
 function syncFocus(animate=false){
  const c=chapters[index],s=c.focus.steps[focusStep],last=focusStep===c.focus.steps.length-1;
- document.body.dataset.focusStep=String(focusStep);setRevealDOM($('#mobile-notes'),focusStep);world?.setReveal(focusStep,{animate});
+ document.body.dataset.focusSlide=String(c.slide);document.body.dataset.focusStep=String(focusStep);setRevealDOM($('#mobile-notes'),focusStep);world?.setReveal(focusStep,{animate});
  $('#counter').innerHTML='שקף '+c.slide+' מתוך '+chapters.length+(c.focus.steps.length>1?'<span class="focus-progress-detail">חלק '+(focusStep+1)+' מתוך '+c.focus.steps.length+'</span>':'');
  $('#chapter-short').textContent=last?c.focus.bridge:'בהמשך: '+c.focus.steps[focusStep+1].heading;
  $('#next').innerHTML=last?'לתחנה הבאה ←':'המשך ←';$('#next').setAttribute('aria-label',last?'לתחנה הבאה':'הצגת החלק הבא באותה תחנה');

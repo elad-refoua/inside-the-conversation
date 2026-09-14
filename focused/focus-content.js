@@ -16,7 +16,8 @@
  }
  function stage(s,i,slide){
   const note=s.note?`<p class="focus-note">${e(s.note)}</p>`:'';
-  let body=`<h2>${e(s.heading)}</h2><p class="focus-body">${e(s.body||'')}</p>${data(s,slide)}${note}`;
+  const headingTag=slide===13?'h3':'h2';
+  let body=`<${headingTag}>${e(s.heading)}</${headingTag}><p class="focus-body">${e(s.body||'')}</p>${data(s,slide)}${note}`;
   if(s.kind==='perspectives')body=`<h2>${e(s.heading)}</h2><p class="focus-body">בחרו דמות כדי לעבור אליה. להיכרות עם המחקר, לחצו על ״המשך״.</p>`;
   if(s.kind==='perspectives')body+=`<div class="focus-choices"><button data-perspective-go="5"><b>האדם ←</b><span>מי פונה, ולמה?</span></button><button data-perspective-go="10"><b>הבינה ←</b><span>מה מקבלים מהשיחה?</span></button><button data-perspective-go="16"><b>המטפלת ←</b><span>מה רואים בטיפול?</span></button></div>`;
   if(slide===13&&i===0)body+=`<div class="focus-measure" role="img" aria-label="טווח התשובות בשאלון: מאפס, כלל לא, עד ארבע, במידה רבה מאוד"><div class="focus-scale">${[0,1,2,3,4].map(n=>`<bdi>${n}</bdi>`).join('')}</div><div class="focus-scale-ends"><span>כלל לא</span><span>במידה רבה מאוד</span></div></div>`;
@@ -34,6 +35,7 @@
   if(c.slide===21){
    c.layout='single';c.labels=[{pos:[0,0,0],width:700,slot:'data',tone:'data',html:`<div class="focus-surface focus-credits">${full.labels.map((l,j)=>`<section class="focus-stage" data-reveal="${j}"${j?' hidden':''}>${l.html}</section>`).join('')}</div>`}];continue;
   }
-  c.layout='single';c.labels=[{pos:[0,0,0],width:760,slot:'data',tone:'data',html:`<div class="focus-surface">${copy.steps.map((s,j)=>stage(s,j,c.slide)).join('')}</div>`}];
+  const screenHeading=c.slide===13?`<h2 class="focus-screen-title">${e(copy.title)}</h2>`:'';
+  c.layout='single';c.labels=[{pos:[0,0,0],width:760,slot:'data',tone:'data',html:`<div class="focus-surface${screenHeading?' focus-needs-screen':''}">${screenHeading}${copy.steps.map((s,j)=>stage(s,j,c.slide)).join('')}</div>`}];
  }
 })();
