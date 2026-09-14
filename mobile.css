@@ -154,12 +154,12 @@ body.mobile-layout #mobile-notes .profile-strip,body.mobile-layout #mobile-notes
 body.mobile-layout #mobile-notes .training-strip bdi{font-size:30px}
 body.mobile-layout #mobile-notes .chart-legend,body.mobile-layout #mobile-notes .legend-inline{font-size:15px;gap:12px;flex-wrap:wrap;line-height:1.5}
 body.mobile-layout #mobile-notes .grouped-chart h3{font-size:19px;line-height:1.3;padding-top:10px}
-body.mobile-layout #mobile-notes .transition-table{table-layout:fixed;width:100%;font-size:17px;border-spacing:3px}
-body.mobile-layout #mobile-notes .transition-table td{min-width:0;padding:10px 3px;overflow-wrap:break-word}
-body.mobile-layout #mobile-notes .transition-table th{font-size:13px;line-height:1.25}
-body.mobile-layout #mobile-notes .transition-table td>bdi{font-size:27px}
-body.mobile-layout #mobile-notes .transition-table td small{font-size:13px}
-body.mobile-layout #mobile-notes .transition-table caption{font-size:16px;line-height:1.4}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table{table-layout:fixed;width:100%;font-size:17px;border-spacing:3px}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table td{min-width:0;padding:10px 3px;overflow-wrap:break-word}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table th{font-size:13px;line-height:1.25}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table td>bdi{font-size:27px}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table td small{font-size:13px}
+body.mobile-layout :is(#mobile-notes,.data-dialog) .transition-table caption{font-size:16px;line-height:1.4}
 body.mobile-layout #mobile-notes .change-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 15px;padding:12px 0;font-size:17px}
 body.mobile-layout #mobile-notes .change-row>svg{grid-column:1/-1;grid-row:2;height:45px}
 body.mobile-layout #mobile-notes .change-row strong{font-size:16px;text-align:left;white-space:normal}

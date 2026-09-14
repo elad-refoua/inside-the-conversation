@@ -132,6 +132,7 @@
 .reading-chapter .world-label .interpretation h2,
 .reading-chapter .world-label .interpretation p { color: var(--surface-text); }
 .data-dialog { background: var(--paper); }
+.data-dialog .transition-table td small { display: block; }
 @media (orientation:portrait) {
   #chapter-heading { background: #09202b; }
   #mobile-notes { background: var(--paper); }
