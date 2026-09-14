@@ -7,14 +7,14 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=1cc5f92951';
-import {formatInlineBidi} from './bidi.js?v=1cc5f92951';
-import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=1cc5f92951';
-import {createPhoneSpace} from './phone-space.js?v=1cc5f92951';
-import {createRoomExhibits} from './room-exhibits.js?v=1cc5f92951';
-import {finishRoom} from './room-finish.js?v=1cc5f92951';
-import {createAIFace} from './ai-face.js?v=1cc5f92951';
-import {createNeedsScenes} from './needs-scenes.js?v=1cc5f92951';
+import {createHuman} from './human.js?v=b240929ac5';
+import {formatInlineBidi} from './bidi.js?v=b240929ac5';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=b240929ac5';
+import {createPhoneSpace} from './phone-space.js?v=b240929ac5';
+import {createRoomExhibits} from './room-exhibits.js?v=b240929ac5';
+import {finishRoom} from './room-finish.js?v=b240929ac5';
+import {createAIFace} from './ai-face.js?v=b240929ac5';
+import {createNeedsScenes} from './needs-scenes.js?v=b240929ac5';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){

@@ -195,3 +195,8 @@
   #mobile-notes .relationship-result .result-claim { font-size: 22px; }
   #mobile-notes .relationship-result .result-qualifier { font-size: 15px; }
 }
+.needs-measurement p { font-size:24px; line-height:1.35; }
+.needs-measurement p + p { margin-top:12px; }
+.needs-measurement blockquote { margin:12px 0; padding:12px 14px; font-size:24px; line-height:1.35; background:#1b3c45; border-radius:6px; }
+.needs-instrument ol { margin:20px 0; padding-inline-start:28px; }
+.needs-instrument li { margin:12px 0; line-height:1.5; }
