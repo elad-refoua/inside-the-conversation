@@ -7,14 +7,14 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {createHuman} from './human.js?v=27452687a5';
-import {formatInlineBidi} from './bidi.js?v=27452687a5';
-import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=27452687a5';
-import {createPhoneSpace} from './phone-space.js?v=27452687a5';
-import {createRoomExhibits} from './room-exhibits.js?v=27452687a5';
-import {finishRoom} from './room-finish.js?v=27452687a5';
-import {createAIFace} from './ai-face.js?v=27452687a5';
-import {createNeedsScenes} from './needs-scenes.js?v=27452687a5';
+import {createHuman} from './human.js?v=27099d48a2';
+import {formatInlineBidi} from './bidi.js?v=27099d48a2';
+import {cameraStop,cameraJourney,TOUR_STOPS,transitionCaption,isPhoneStop} from './camera-tour.js?v=27099d48a2';
+import {createPhoneSpace} from './phone-space.js?v=27099d48a2';
+import {createRoomExhibits} from './room-exhibits.js?v=27099d48a2';
+import {finishRoom} from './room-finish.js?v=27099d48a2';
+import {createAIFace} from './ai-face.js?v=27099d48a2';
+import {createNeedsScenes} from './needs-scenes.js?v=27099d48a2';
 
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 export async function createWorld(container,chapters){
@@ -273,13 +273,65 @@ export async function createWorld(container,chapters){
  const journeyCue=document.createElement('div');journeyCue.className='journey-cue';journeyCue.hidden=true;
  const portalCover=document.createElement('div');portalCover.className='phone-portal-cover';portalCover.setAttribute('aria-hidden','true');container.appendChild(portalCover);
  const journeyPlace=document.createElement('strong'),journeyReason=document.createElement('span');journeyCue.append(journeyPlace,journeyReason);container.appendChild(journeyCue);
- function shotAt(index){const {w,h}=viewport();return cameraStop(index,w/h,mobileLayout());}
- function setChapter(index,immediate=false){
-  renderDirty=true;const ch=chapters[index],shot=shotAt(index),previous=current,interrupted=!!transition;
+ // Included inside createWorld; the physical displays remain anchored.
+let revealedStep = 0;
+function shotAt(index, step = index === current ? revealedStep : 0) {
+ const {w,h} = viewport();
+ const shot = cameraStop(index,w/h,mobileLayout());
+ if (!isPhoneStop(index) || !step) return shot;
+ const forward = shot.target.clone().sub(shot.position).normalize();
+ const right = new THREE.Vector3().crossVectors(forward,V(0,1,0)).normalize();
+ const up = new THREE.Vector3().crossVectors(right,forward).normalize();
+ // Follow the conversation across the display, rather than return to the
+ // original pose after every reveal. Back traverses these same destinations.
+ shot.position.addScaledVector(right,.44*step).addScaledVector(forward,.05*step).addScaledVector(up,.025*step);
+ shot.target.addScaledVector(right,.11*step).addScaledVector(up,.01*step);
+ return shot;
+}
+function setReveal(step, {animate = false} = {}) {
+ step = Math.max(0,Math.min(chapters[current].focus.steps.length-1,step));
+ const changed = step !== revealedStep;
+ revealedStep = step;
+ for (const l of labelSets[current].labels) {
+  l.el.querySelectorAll('[data-reveal]').forEach(el => { el.hidden = Number(el.dataset.reveal) !== step; });
+ }
+ layoutLabels(current);renderDirty = true;
+ if (!changed || !isPhoneStop(current)) return;
+ const shot = shotAt(current);
+ homeCamera.copy(shot.position);
+ // Preserve an active journey through the phone's screen on rapid input.
+ if (transition && !transition.localReveal) {
+  const end = transition.sample(1);
+  transition.resizePosition = shot.position.clone().sub(end.position);
+  transition.resizeTarget = shot.target.clone().sub(end.target);
+  return;
+ }
+ const fromPosition = camera.position.clone(), fromTarget = currentTarget.clone();
+ resetSway();
+ if (animate && !still && !paused && !exploring && camera.position.y < -8) {
+  const position = fromPosition.clone(),target = fromTarget.clone();
+  transition = {
+   localReveal:true,fromIndex:current,toIndex:current,elapsed:0,
+   duration:820,lastTime:performance.now(),length:fromPosition.distanceTo(shot.position),
+   sample(progress) {
+    const p = Math.max(0,Math.min(1,progress)),e = p*p*p*(p*(p*6-15)+10);
+    return {position:position.lerpVectors(fromPosition,shot.position,e),target:target.lerpVectors(fromTarget,shot.target,e)};
+   }
+  };
+  container.classList.add('travelling');journeyCue.hidden = true;
+ } else {
+  transition = null;
+  camera.position.copy(shot.position);currentTarget.copy(shot.target);camera.lookAt(currentTarget);
+  controls.target.copy(currentTarget);container.classList.remove('travelling');journeyCue.hidden = true;
+ }
+}
+
+ function setChapter(index,immediate=false,step=0){revealedStep=step;
+  renderDirty=true;const ch=chapters[index],shot=shotAt(index,step),previous=current,interrupted=!!transition;
   exploring=false;controls.enabled=false;
   const fromPos=camera.position.clone(),fromTarget=currentTarget.clone();resetSway();homeCamera.copy(shot.position);
   if(current<0||immediate||still){camera.position.copy(homeCamera);currentTarget.copy(shot.target);camera.lookAt(currentTarget);transition=null;}
-  else {human.group.updateMatrixWorld(true);const phonePose={center:human.screen.getWorldPosition(V(0,0,0)),normal:V(0,0,1).applyQuaternion(human.screen.getWorldQuaternion(new THREE.Quaternion()))};const {w,h}=viewport();transition=cameraJourney(fromPos,fromTarget,interrupted?-1:previous,index,w/h,phonePose,mobileLayout());transition.lastTime=performance.now();}
+  else {human.group.updateMatrixWorld(true);const phonePose={center:human.screen.getWorldPosition(V(0,0,0)),normal:V(0,0,1).applyQuaternion(human.screen.getWorldQuaternion(new THREE.Quaternion()))};const {w,h}=viewport();transition=cameraJourney(fromPos,fromTarget,interrupted?-1:previous,index,w/h,phonePose,mobileLayout());transition.lastTime=performance.now();if(isPhoneStop(index)&&step){const end=transition.sample(1);transition.resizePosition=shot.position.clone().sub(end.position);transition.resizeTarget=shot.target.clone().sub(end.target);}}
   current=index;document.body.classList.toggle('tv-chapter',[12,15,16].includes(index));therapistLight.intensity=ch.therapist?32:13;lamp.intensity=shot.id==='night'?23:16;
   controls.minDistance=isPhoneStop(index)?3:2;controls.maxDistance=isPhoneStop(index)?8.5:26;
   controls.enablePan=!isPhoneStop(index);
@@ -328,14 +380,14 @@ export async function createWorld(container,chapters){
   const needsVisible=!inPhone&&current===11&&(mobileLayout()||innerWidth>=innerHeight)&&(!transition||transition.elapsed/transition.duration>.92);
   for(const group of scene.getObjectByName('room-exhibits').children)group.visible=group.name.includes('needs-')?needsVisible&&!mobileLayout():group.name.includes('phone-')===inPhone;
   const mounted=fixedPlacements.get(current),primary=mounted?.values().next().value;
-  let reveal=transition?0:1;
-  if(transition&&primary){const facing=V(0,0,1).applyQuaternion(primary.quaternion).dot(camera.position.clone().sub(primary.position).normalize()),distance=camera.position.distanceTo(primary.position);const p=transition.elapsed/transition.duration;reveal=clamp((9-distance)/3,0,1)*clamp((facing-.55)/.3,0,1);if(transition.portal)reveal*=clamp((p-.76)/.18,0,1);}
-  else if(transition)reveal=transition.elapsed/transition.duration>.95?1:0;
+  let reveal=transition&&!transition.localReveal?0:1;
+  if(transition&&!transition.localReveal&&primary){const facing=V(0,0,1).applyQuaternion(primary.quaternion).dot(camera.position.clone().sub(primary.position).normalize()),distance=camera.position.distanceTo(primary.position);const p=transition.elapsed/transition.duration;reveal=clamp((9-distance)/3,0,1)*clamp((facing-.55)/.3,0,1);if(transition.portal)reveal*=clamp((p-.76)/.18,0,1);}
+  else if(transition&&!transition.localReveal)reveal=transition.elapsed/transition.duration>.95?1:0;
   for(const l of labelSets[current].labels){l.el.style.visibility=reveal>.015?'visible':'hidden';l.el.style.opacity=String(reveal);l.el.style.pointerEvents=reveal>.98?'auto':'none';l.el.inert=mobileLayout()||reveal<=.98;l.el.setAttribute('aria-hidden',!mobileLayout()&&reveal>.98?'false':'true');}
   needsScenes.setEnabled(needsVisible);needsScenes.update(t,!active);
   roomFinish.update(t);aiFace.update(dt,!active);renderer.info.reset();if(mobileQuality)renderer.render(scene,camera);else composer.render();
   cssCamera.copy(camera);cssCamera.position.multiplyScalar(cssWorldScale);cssCamera.near*=cssWorldScale;cssCamera.far*=cssWorldScale;cssCamera.updateProjectionMatrix();cssCamera.updateMatrixWorld();css.render(labelScene,cssCamera);
  }
  setChapter(0,true);animate();
- return {setReveal(step){for(const l of labelSets[current].labels){l.el.querySelectorAll("[data-reveal]").forEach(el=>{el.hidden=Number(el.dataset.reveal)!==step;});}layoutLabels(current);renderDirty=true;},setChapter,setExplore,setMotion(value){renderDirty=true;still=value;resetSway();},setPaused(value){renderDirty=true;paused=value;pointer.set(0,0);if(transition)transition.lastTime=performance.now();},getState(){return {chapter:current,shot:TOUR_STOPS[current]?.id,place:TOUR_STOPS[current]?.place,realm:camera.position.y < -8?'phone':'room',exhibits:exhibits.getState(),phoneInterior:phoneSpace.getState(),journey:transition?{from:transition.fromIndex,to:transition.toIndex,progress:transition.elapsed/transition.duration,duration:transition.duration,length:transition.length,portal:!!transition.portal}:null,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,viewport:{...viewport(),mobile:mobileLayout(),fov:camera.fov},quality:{mode:mobileQuality?'mobile':'desktop',pixelRatio:renderer.getPixelRatio(),pixelCap,postprocessing:!mobileQuality,shadowMap:key.shadow.mapSize.x},needs:needsScenes.getState(),labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
+ return {setReveal,setChapter,setExplore,setMotion(value){renderDirty=true;still=value;resetSway();},setPaused(value){renderDirty=true;paused=value;pointer.set(0,0);if(transition)transition.lastTime=performance.now();},getState(){return {chapter:current,shot:TOUR_STOPS[current]?.id,place:TOUR_STOPS[current]?.place,realm:camera.position.y < -8?'phone':'room',exhibits:exhibits.getState(),phoneInterior:phoneSpace.getState(),revealStep:revealedStep,journey:transition?{kind:transition.localReveal?"phone-reveal":"chapter",from:transition.fromIndex,to:transition.toIndex,progress:transition.elapsed/transition.duration,duration:transition.duration,length:transition.length,portal:!!transition.portal}:null,modelLoaded:true,modelMeshes:human.group.children.length,camera:camera.position.toArray(),homeCamera:homeCamera.toArray(),target:currentTarget.toArray(),liveMotion:!still&&!paused&&!exploring,sway:sway.toArray(),drag:drag.toArray(),typingActivity:human.activity,thumb:human.bones.RightHandThumb2.quaternion.toArray(),sceneCue:cueKind,transitioning:!!transition,render:renderer.info.render,viewport:{...viewport(),mobile:mobileLayout(),fov:camera.fov},quality:{mode:mobileQuality?'mobile':'desktop',pixelRatio:renderer.getPixelRatio(),pixelCap,postprocessing:!mobileQuality,shadowMap:key.shadow.mapSize.x},needs:needsScenes.getState(),labels:labelSets[current]?.labels.map(l=>({html:l.el.textContent,position:l.object.position.toArray()}))};},scene,camera,human};
 }

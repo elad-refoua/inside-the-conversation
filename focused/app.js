@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=27452687a5';
-import {formatInlineBidi} from './bidi.js?v=27452687a5';
+import {createWorld} from './world.js?v=27099d48a2';
+import {formatInlineBidi} from './bidi.js?v=27099d48a2';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let focusStep=0;let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
@@ -76,7 +76,7 @@ $('#paper-card').onclick=()=>{const p=chapters[index].paper;if(!p)return;stopTou
 dialog.querySelector('.close').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
 dialog.addEventListener('close',()=>world?.setPaused(mobileExpanded||dialog.open));
 function draw(){const c=chapters[index],paperSlot=$('#mobile-paper-slot');$('#mobile-sheet-content').append(paperSlot);document.body.classList.toggle('needs-chapter',c.slide===12);$('#mobile-notes').innerHTML='<p class="mobile-purpose">'+escape(c.purpose||'')+'</p>'+c.labels.map((l,i)=>'<div class="world-label '+(l.tone||'')+'" data-label="'+i+'"'+(l.html.includes('<button')?'':' tabindex="0" role="button" aria-label="הגדלת תוכן השקף"')+'>'+l.html+'</div>').join('')+`<p class="mobile-qualification">${c.caption||''}</p>`;$('#mobile-notes').append(paperSlot);$('#mobile-notes').scrollTop=0;$('#chapter-title').textContent=c.title;$('#chapter-purpose').textContent=c.purpose||'';$('#chapter-section').textContent=c.section;$('#chapter-heading').classList.toggle('opening',false);$('#chapter-short').textContent=c.short;$('#counter').textContent=`שקף ${c.slide} מתוך ${chapters.length}`;$('#caption').textContent=c.caption||'';$('#progress span').style.width=(index+1)/chapters.length*100+'%';$('#previous').disabled=index===0;$('#next').disabled=index===chapters.length-1;$('#route').querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-current',String(Number(b.dataset.group)===c.group)));document.title=c.title+' — בתוך השיחה';const p=c.paper;$('#paper-card').hidden=!p;document.body.classList.toggle('has-paper',!!p);if(p){$('#paper-step').textContent=p.step;$('#paper-title').textContent=p.title;$('#paper-status').textContent=p.status;}formatInlineBidi($('#paper-card'));}
-function go(i,instant=false,step=0){focusStep=Math.max(0,Math.min(chapters[Math.max(0,Math.min(chapters.length-1,i))].focus.steps.length-1,step));if(document.activeElement?.closest('#world,#mobile-notes'))document.activeElement.blur();index=Math.max(0,Math.min(chapters.length-1,i));explore=false;$('#explore').setAttribute('aria-pressed','false');$('#explore-hint').hidden=true;setMobileExpanded(false);draw();measureMobileScene();for(const root of [$('#mobile-notes'),$('#chapter-heading'),$('#caption')])formatInlineBidi(root);zoom.hidden=false;world?.setChapter(index,instant);syncFocus();}
+function go(i,instant=false,step=0){focusStep=Math.max(0,Math.min(chapters[Math.max(0,Math.min(chapters.length-1,i))].focus.steps.length-1,step));if(document.activeElement?.closest('#world,#mobile-notes'))document.activeElement.blur();index=Math.max(0,Math.min(chapters.length-1,i));explore=false;$('#explore').setAttribute('aria-pressed','false');$('#explore-hint').hidden=true;setMobileExpanded(false);draw();measureMobileScene();for(const root of [$('#mobile-notes'),$('#chapter-heading'),$('#caption')])formatInlineBidi(root);zoom.hidden=false;world?.setChapter(index,instant,focusStep);syncFocus();}
 $('#next').onclick=()=>{stopTour();advance(1);};$('#previous').onclick=()=>{stopTour();advance(-1);};
 $('#overview').onclick=()=>{open('<h2>המסע לפי המצגת המקורית</h2><div class="map-grid">'+chapters.map((c,i)=>`<button class="map-stop" data-go="${i}" aria-current="${i===index}"><small>שקף ${c.slide} · ${c.section}</small><span>${c.short}</span></button>`).join('')+'</div>');dialog.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{stopTour();dialog.close();go(Number(b.dataset.go));});};
 $('#sources').onclick=()=>{const c=chapters[index],ids=[...new Set([...(c.sourceFactIds||[]),...c.labels.flatMap(l=>[...l.html.matchAll(/data-fact="([^"]+)"/g)].map(m=>m[1]))])];open(`<h2>${c.short}</h2><div class="audited-notes">${escape(c.notes||'').split(/\n\n+/).map(p=>'<p>'+p+'</p>').join('')}</div>${c.refs?'<h3>לקריאה</h3>'+c.refs.map(([label,url])=>`<p><a href="${escape(url)}" target="_blank" rel="noopener">${escape(label)}</a></p>`).join(''):''}<h3>נתונים ומקורות</h3><p>המספרים, ההגדרות והפרשנות נבדקו מול טבלאות המחקר, השאלונים והמאמרים ב־7.9.2026. נתוני המעקב עודכנו ואומתו מול מקורות כלל B ב־14.9.2026. ההערות כאן הן הנוסח שנבדק עבור האתר.</p>${ids.map(id=>{const f=window.SOURCE_FACTS.facts[id];return `<details class="source-item"><summary><bdi>${escape(f.display)}</bdi> · ${escape(f.citation||f.source)}</summary>${f.auditNote?'<p>'+escape(f.auditNote)+'</p>':''}${/^https:\/\//.test(f.source)?'<p><a href="'+escape(f.source)+'" target="_blank" rel="noopener">פתיחת המקור</a></p>':''}<pre>${escape(typeof f.quote==='string'?f.quote:JSON.stringify(f.quote))}</pre><small>מזהה ברשומת העובדות: <bdi>${escape(id)}</bdi></small></details>`;}).join('')}`);};
@@ -93,9 +93,9 @@ addEventListener('keydown',e=>{if(!dialog.open&&e.key.toLowerCase()==='g'&&!zoom
 const compare=document.createElement('a');compare.id='focus-compare';compare.textContent='לגרסה הקודמת ↗';compare.target='_blank';compare.rel='noopener';compare.title='פתיחת אותה תחנה בגרסה שנשמרה';$('.tools').append(compare);
 const badge=document.createElement('span');badge.id='focus-badge';badge.textContent=' · המסע הממוקד';$('.brand small').append(badge);
 function setRevealDOM(root,step){root.querySelectorAll('[data-reveal]').forEach(el=>{el.hidden=Number(el.dataset.reveal)!==step;});}
-function syncFocus(){
+function syncFocus(animate=false){
  const c=chapters[index],s=c.focus.steps[focusStep],last=focusStep===c.focus.steps.length-1;
- document.body.dataset.focusStep=String(focusStep);setRevealDOM($('#mobile-notes'),focusStep);world?.setReveal(focusStep);
+ document.body.dataset.focusStep=String(focusStep);setRevealDOM($('#mobile-notes'),focusStep);world?.setReveal(focusStep,{animate});
  $('#counter').innerHTML='שקף '+c.slide+' מתוך '+chapters.length+(c.focus.steps.length>1?'<span class="focus-progress-detail">חלק '+(focusStep+1)+' מתוך '+c.focus.steps.length+'</span>':'');
  $('#chapter-short').textContent=last?c.focus.bridge:'בהמשך: '+c.focus.steps[focusStep+1].heading;
  $('#next').innerHTML=last?'לתחנה הבאה ←':'המשך ←';$('#next').setAttribute('aria-label',last?'לתחנה הבאה':'הצגת החלק הבא באותה תחנה');
@@ -107,7 +107,7 @@ function syncFocus(){
 }
 function advance(direction){
  const next=focusStep+direction,c=chapters[index];
- if(next>=0&&next<c.focus.steps.length){focusStep=next;syncFocus();$('#mobile-notes').scrollTop=0;return;}
+ if(next>=0&&next<c.focus.steps.length){focusStep=next;syncFocus(true);$('#mobile-notes').scrollTop=0;return;}
  if(direction>0){if(index<chapters.length-1)go(index+1);}
  else if(index>0)go(index-1,false,chapters[index-1].focus.steps.length-1);
 }

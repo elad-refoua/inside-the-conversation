@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {PHONE_STOPS} from './phone-space.js?v=27452687a5';
+import {PHONE_STOPS} from './phone-space.js?v=27099d48a2';
 
 // An authored walk through this room, in the existing PowerPoint order.
 // Coordinates refer to the actual person, phone, table, AI and therapist.
