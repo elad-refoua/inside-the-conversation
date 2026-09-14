@@ -1,5 +1,5 @@
-import {createWorld} from './world.js?v=d068b6033f';
-import {formatInlineBidi} from './bidi.js?v=d068b6033f';
+import {createWorld} from './world.js?v=587462040d';
+import {formatInlineBidi} from './bidi.js?v=587462040d';
 const {chapters,escape}=window.CONVERSATION;
 const $=s=>document.querySelector(s);let index=0,world,explore=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const dialog=$('#drawer');
@@ -7,12 +7,15 @@ const mobilePortrait=matchMedia('(max-width:1024px) and (orientation:portrait)')
 const mobileLandscape=matchMedia('(max-width:1100px) and (max-height:700px) and (orientation:landscape) and (pointer:coarse)');
 const paperHome=document.createComment('Desktop paper-card position');
 $('#paper-card').before(paperHome);
-let mobileExpanded=false,mobileScrollSuppressedUntil=0,mobilePointer=null,mobileMeasureFrame=0;
+let mobileExpanded=false,mobileScrollSuppressedUntil=0,mobilePointer=null,mobileMeasureFrame=0,mobileReadingIndex=-1;
 const mobileOptions=document.createElement('button');
 mobileOptions.id='mobile-options';mobileOptions.textContent='⋯';mobileOptions.setAttribute('aria-label','אפשרויות המסע');mobileOptions.setAttribute('aria-haspopup','dialog');
 $('.tools').append(mobileOptions);
 function setMobileExpanded(expanded){
  mobileExpanded=expanded;document.body.classList.toggle('mobile-sheet-expanded',expanded);
+ // Reset a new chapter after its hidden reading pane becomes measurable.
+ // Reopening the same chapter or returning from enlargement keeps its place.
+ if(expanded&&mobileReadingIndex!==index){$('#mobile-notes').scrollTop=0;mobileReadingIndex=index;}
  if(expanded)stopTour();world?.setPaused(expanded||dialog.open);
  $('#mobile-sheet-toggle').setAttribute('aria-expanded',String(expanded));
  $('#mobile-sheet-action').textContent=expanded?'חזרה לחדר':'פתיחה';$('#mobile-sheet-content').inert=mobilePortrait.matches&&!expanded;
